@@ -1,3 +1,23 @@
+const state = {
+  isActive: true,
+  showLog: false,
+  showBolo: false,
+  isPositioning: false,
+  isLogPositioning: false,
+  isBoloPositioning: false,
+  frontSpeed: 0,
+  rearSpeed: 0,
+  frontPlate: "--------",
+  rearPlate: "--------",
+  boloPlates: [],
+  boloAlerts: { front: false, rear: false },
+  savedReadings: [],
+  idCounter: 1,
+  notificationType: "native",
+  interactKey: "",
+  selectedDirection: "Front",
+}
+
 const radarPanel = document.getElementById("radar-panel")
 const logPanel = document.getElementById("log-panel")
 const boloPanel = document.getElementById("bolo-panel")
@@ -34,31 +54,16 @@ const closeBoloBtnPanel = document.getElementById("close-bolo-btn")
 const addBoloPlateBtn = document.getElementById("add-bolo-plate-btn")
 const closeBoloBtnModal = document.getElementById("close-bolo-modal-btn")
 const addBoloBtn = document.getElementById("add-bolo-btn")
-
-const state = {
-  frontSpeed: 0,
-  rearSpeed: 0,
-  frontPlate: "",
-  rearPlate: "",
-  isActive: true,
-  savedReadings: [],
-  boloPlates: [],
-  showLog: false,
-  showBolo: false,
-  selectedDirection: "Front",
-  isPositioning: false,
-  isLogPositioning: false,
-  isBoloPositioning: false,
-  showKeybinds: false,
-  idCounter: 1,
-  boloAlerts: {
-    front: false,
-    rear: false,
-  },
-  interactKey: "F6",
-  isInteracting: false,
-  notificationType: "native",
-}
+let speedLockThreshold = 80
+let speedLockEnabled = false
+let speedLockUserDisabled = false
+let lastLockTrigger = null
+const speedLockBtn = document.getElementById("speed-lock-btn")
+const speedLockModal = document.getElementById("speed-lock-modal")
+const closeSpeedLockModalBtn = document.getElementById("close-speed-lock-modal-btn")
+const speedLockInput = document.getElementById("speed-lock-input")
+const setSpeedLockBtn = document.getElementById("set-speed-lock-btn")
+const disableSpeedLockBtn = document.getElementById("disable-speed-lock-btn")
 
 let isDragging = false
 let isLogDragging = false
@@ -120,7 +125,7 @@ function init() {
   boloPanel.style.top = "20px"
 
   setupEventListeners()
-  selectDirection("Front")
+  initializeSelection()
 }
 
 function applyPositions(positions) {
@@ -154,8 +159,12 @@ function setupEventListeners() {
   logBtn.addEventListener("click", toggleLog)
   boloBtn.addEventListener("click", toggleBolo)
   saveBtn.addEventListener("click", saveReading)
+  speedLockBtn.addEventListener("click", openSpeedLockModal)
   logPositionBtn.addEventListener("click", toggleLogPositioning)
   boloPositionBtn.addEventListener("click", toggleBoloPositioning)
+  
+  frontPanel.addEventListener("click", () => selectDirection("Front"))
+  rearPanel.addEventListener("click", () => selectDirection("Rear"))
   closeLogBtn.addEventListener("click", () => {
     state.showLog = false
     logPanel.classList.add("hidden")
@@ -169,45 +178,14 @@ function setupEventListeners() {
   addBoloPlateBtn.addEventListener("click", showBoloModal)
   closeBoloBtnModal.addEventListener("click", hideBoloModal)
   addBoloBtn.addEventListener("click", addBoloPlate)
-  frontPanel.addEventListener("click", () => {
-    if (!state.isPositioning) {
-      selectDirection("Front")
-    }
-  })
-  rearPanel.addEventListener("click", () => {
-    if (!state.isPositioning) {
-      selectDirection("Rear")
-    }
-  })
-  radarPanel.addEventListener("mousedown", handleRadarMouseDown)
-  logPanel.addEventListener("mousedown", handleLogMouseDown)
-  boloPanel.addEventListener("mousedown", handleBoloMouseDown)
-  document.addEventListener("mousemove", handleMouseMove)
-  document.addEventListener("mouseup", handleMouseUp)
-  boloPlateInput.addEventListener("keydown", (e) => {
+  closeSpeedLockModalBtn.addEventListener("click", closeSpeedLockModal)
+  setSpeedLockBtn.addEventListener("click", setSpeedLockThreshold)
+  disableSpeedLockBtn.addEventListener("click", disableSpeedLock)
+
+  speedLockInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") {
-      addBoloPlate()
+      setSpeedLockThreshold()
     }
-  })
-
-  boloPlateInput.addEventListener("focus", () => {
-    fetch("https://sd-policeradar/inputActive", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({}),
-    }).catch(() => {})
-  })
-
-  boloPlateInput.addEventListener("blur", () => {
-    fetch("https://sd-policeradar/inputInactive", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({}),
-    }).catch(() => {})
   })
 }
 
@@ -367,7 +345,7 @@ function togglePositioning() {
   state.isPositioning = !state.isPositioning
   if (state.isPositioning) {
     radarPanel.classList.add("positioning")
-    radarTitle.textContent = "POSITIONING"
+    radarTitle.innerHTML = `<div class="status-indicator ${state.isActive ? "unlocked" : "locked"}"></div>POSITIONING`
     radarHint.textContent = "Click and drag to reposition"
     positionBtn.classList.add("active")
     if (state.isLogPositioning) {
@@ -382,7 +360,7 @@ function togglePositioning() {
     showNotification("Click and drag to reposition radar")
   } else {
     radarPanel.classList.remove("positioning")
-    radarTitle.textContent = `${state.isActive ? "UNLOCKED" : "LOCKED"}`
+    radarTitle.innerHTML = `<div class="status-indicator ${state.isActive ? "unlocked" : "locked"}"></div>${state.isActive ? "UNLOCKED" : "LOCKED"}`
     updateDirectionHint()
     positionBtn.classList.remove("active")
     showNotification("Position saved")
@@ -437,12 +415,37 @@ function toggleBoloPositioning() {
 
 function toggleRadar() {
   state.isActive = !state.isActive
+  const statusIndicator = radarTitle.querySelector(".status-indicator")
+
   if (state.isActive) {
-    lockBtn.innerHTML = '<i class="fa-solid fa-lock"></i>'
-  } else {
     lockBtn.innerHTML = '<i class="fa-solid fa-unlock"></i>'
+    if (statusIndicator) {
+      statusIndicator.classList.remove("locked")
+      statusIndicator.classList.add("unlocked")
+    }
+    
+    if (speedLockThreshold > 0 && !speedLockUserDisabled) {
+      speedLockEnabled = true
+      fetch("https://sd-policeradar/setSpeedLockThreshold", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          threshold: speedLockThreshold,
+          enabled: true,
+        }),
+      }).catch(() => {})
+    }
+  } else {
+    lockBtn.innerHTML = '<i class="fa-solid fa-lock"></i>'
+    if (statusIndicator) {
+      statusIndicator.classList.remove("unlocked")
+      statusIndicator.classList.add("locked")
+    }
   }
-  radarTitle.textContent = `${state.isActive ? "UNLOCKED" : "LOCKED"}`
+
+  radarTitle.innerHTML = `<div class="status-indicator ${state.isActive ? "unlocked" : "locked"}"></div>${state.isActive ? "UNLOCKED" : "LOCKED"}`
   showNotification(`Radar ${state.isActive ? "unlocked" : "locked"}`)
 }
 
@@ -536,6 +539,16 @@ function selectDirection(direction) {
   showNotification(`Selected ${direction}`)
 }
 
+function initializeSelection() {
+  frontPanel.classList.add("selected")
+  rearPanel.classList.remove("selected")
+  updateDirectionHint()
+
+  radarTitle.innerHTML = `<div class="status-indicator ${state.isActive ? "unlocked" : "locked"}"></div>${state.isActive ? "UNLOCKED" : "LOCKED"}`
+  
+  lockBtn.innerHTML = state.isActive ? '<i class="fa-solid fa-unlock"></i>' : '<i class="fa-solid fa-lock"></i>'
+}
+
 function updateDirectionHint() {
   if (state.selectedDirection === "Front") {
     radarHint.textContent = "Front selected"
@@ -619,38 +632,46 @@ function showNotification(message) {
   }
 }
 
+function isValidKeybind(key) {
+  return key && typeof key === 'string' && key.trim() !== ''
+}
+
 function updateKeybindsDisplay(keybinds) {
   if (!keybinds) return
   const keybindsList = document.querySelector(".keybinds-list")
   if (!keybindsList) return
 
   keybindsList.innerHTML = ""
-  if (keybinds.SelectFront) {
-    addKeybindRow(keybindsList, "Switch to Front", keybinds.SelectFront)
+  
+  if (isValidKeybind(keybinds.ToggleRadar)) {
+    addKeybindRow(keybindsList, "Toggle Radar", keybinds.ToggleRadar)
   }
-  if (keybinds.SelectRear) {
-    addKeybindRow(keybindsList, "Switch to Rear", keybinds.SelectRear)
+  if (isValidKeybind(keybinds.Interact)) {
+    addKeybindRow(keybindsList, "Interact with Radar", keybinds.Interact)
   }
-  if (keybinds.SaveReading) {
+  if (isValidKeybind(keybinds.SaveReading)) {
     addKeybindRow(keybindsList, "Save Reading", keybinds.SaveReading)
   }
-  if (keybinds.LockRadar) {
+  if (isValidKeybind(keybinds.LockRadar)) {
     addKeybindRow(keybindsList, "Lock/Unlock Radar", keybinds.LockRadar)
   }
-  if (keybinds.ToggleLog) {
+  if (isValidKeybind(keybinds.SelectFront)) {
+    addKeybindRow(keybindsList, "Switch to Front", keybinds.SelectFront)
+  }
+  if (isValidKeybind(keybinds.SelectRear)) {
+    addKeybindRow(keybindsList, "Switch to Rear", keybinds.SelectRear)
+  }
+  if (isValidKeybind(keybinds.ToggleLog)) {
     addKeybindRow(keybindsList, "Toggle Log", keybinds.ToggleLog)
   }
-  if (keybinds.ToggleBolo) {
+  if (isValidKeybind(keybinds.ToggleBolo)) {
     addKeybindRow(keybindsList, "Toggle BOLO List", keybinds.ToggleBolo)
   }
-  if (keybinds.TogglePosition) {
-    addKeybindRow(keybindsList, "Positioning Mode", keybinds.TogglePosition)
-  }
-  if (keybinds.ToggleKeybinds) {
+  if (isValidKeybind(keybinds.ToggleKeybinds)) {
     addKeybindRow(keybindsList, "Show/Hide Keybinds", keybinds.ToggleKeybinds)
   }
-  if (keybinds.Interact) {
-    addKeybindRow(keybindsList, "Interact with Radar", keybinds.Interact)
+  if (isValidKeybind(keybinds.SpeedLockThreshold)) {
+    addKeybindRow(keybindsList, "Speed Lock Threshold", keybinds.SpeedLockThreshold)
   }
 }
 
@@ -677,6 +698,94 @@ function formatKeyName(key) {
     default:
       return key.toUpperCase()
   }
+}
+
+function openSpeedLockModal() {
+  speedLockModal.classList.remove("hidden")
+  speedLockInput.value = speedLockThreshold
+  speedLockInput.focus()
+  speedLockInput.select()
+}
+
+function closeSpeedLockModal() {
+  speedLockModal.classList.add("hidden")
+}
+
+function setSpeedLockThreshold() {
+  const newThreshold = Number.parseInt(speedLockInput.value)
+  if (newThreshold && newThreshold > 0 && newThreshold <= 200) {
+    speedLockThreshold = newThreshold
+    speedLockEnabled = true
+    speedLockUserDisabled = false
+    closeSpeedLockModal()
+    showNotification(`Speed lock threshold set to ${speedLockThreshold} MPH`)
+
+    if (window.invokeNative) {
+      fetch("https://sd-policeradar/setSpeedLockThreshold", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          threshold: speedLockThreshold,
+          enabled: true,
+        }),
+      }).catch(() => {})
+    }
+  } else {
+    showNotification("Please enter a valid speed between 1-200 MPH")
+  }
+}
+
+function disableSpeedLock() {
+  speedLockEnabled = false
+  speedLockUserDisabled = true
+  closeSpeedLockModal()
+  showNotification("Speed lock threshold disabled")
+
+  if (window.invokeNative) {
+    fetch("https://sd-policeradar/setSpeedLockThreshold", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        threshold: speedLockThreshold,
+        enabled: false,
+      }),
+    }).catch(() => {})
+  }
+}
+
+function updateRadarData() {
+  if (!state.isActive) return
+
+  fetch("https://sd-policeradar/getRadarData")
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.front) {
+        frontSpeed.textContent = data.front.speed || "0"
+        frontPlate.textContent = data.front.plate || "--------"
+
+        if (data.front.speed && Number.parseInt(data.front.speed) >= speedLockThreshold && speedLockEnabled) {
+          toggleRadar()
+          lastLockTrigger = data.front.plate || "Unknown Vehicle"
+          showNotification(`Auto-locked: ${lastLockTrigger} - Speed ${data.front.speed} MPH exceeds threshold`)
+        }
+      }
+      if (data.rear) {
+        rearSpeed.textContent = data.rear.speed || "0"
+        rearPlate.textContent = data.rear.plate || "--------"
+
+        if (data.rear.speed && Number.parseInt(data.rear.speed) >= speedLockThreshold && speedLockEnabled) {
+          
+          toggleRadar() 
+          lastLockTrigger = data.rear.plate || "Unknown Vehicle"
+          showNotification(`Auto-locked: ${lastLockTrigger} - Speed ${data.rear.speed} MPH exceeds threshold`)
+        }
+      }
+    })
+    .catch(() => {})
 }
 
 document.addEventListener("DOMContentLoaded", init)
@@ -715,6 +824,15 @@ window.addEventListener("message", (event) => {
     state.notificationType = data.notificationType || "native"
   } else if (data.type === "loadPositions") {
     applyPositions(data.positions)
+  } else if (data.type === "speedLockTriggered") {
+    if (speedLockEnabled) {
+      toggleRadar() 
+      lastLockTrigger = data.plate || "Unknown Vehicle"
+      
+      const plateInfo = data.plate && data.plate !== "--------" ? ` (${data.plate})` : ""
+      showNotification(`Auto-locked: ${data.direction} radar - ${data.speed} MPH${plateInfo} exceeds ${speedLockThreshold} MPH threshold`)
+    }
+  } else if (data.type === "openSpeedLockModal") {
+    openSpeedLockModal()
   }
 })
-

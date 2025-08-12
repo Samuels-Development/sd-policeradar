@@ -2,6 +2,8 @@ local radarEnabled = false
 local radarWasEnabled = false
 local interacting = false
 local boloPlates = {}
+local speedLockThreshold = 80
+local speedLockEnabled = false
 
 -- Send NUI messages only when radar is enabled
 local function SendIfRadarEnabled(message)
@@ -58,7 +60,9 @@ end
 
 -- Register slash command and keybind to toggle
 RegisterCommand("radar", ToggleRadar, false)
-RegisterKeyMapping("radar", "Toggle Radar", "keyboard", Config.Keybinds.ToggleRadar)
+if Config.Keybinds.ToggleRadar and type(Config.Keybinds.ToggleRadar) == "string" and Config.Keybinds.ToggleRadar:match("%S") then
+    RegisterKeyMapping("radar", "Toggle Radar", "keyboard", Config.Keybinds.ToggleRadar)
+end
 
 -- Toggle UI interaction mode
 RegisterCommand("radarInteract", function()
@@ -68,7 +72,9 @@ RegisterCommand("radarInteract", function()
         SetNuiFocusKeepInput(interacting)
     end
 end, false)
-RegisterKeyMapping("radarInteract", "Interact with Radar UI", "keyboard", Config.Keybinds.Interact)
+if Config.Keybinds.Interact and type(Config.Keybinds.Interact) == "string" and Config.Keybinds.Interact:match("%S") then
+    RegisterKeyMapping("radarInteract", "Interact with Radar UI", "keyboard", Config.Keybinds.Interact)
+end
 
 local simpleCommands = {
     radarSave = { key = Config.Keybinds.SaveReading, desc = "Save Radar Reading", msg = { type = "saveReading" } },
@@ -78,12 +84,29 @@ local simpleCommands = {
     radarToggleLog = { key = Config.Keybinds.ToggleLog, desc = "Toggle Radar Log", msg = { type = "toggleLog" } },
     radarToggleBolo = { key = Config.Keybinds.ToggleBolo, desc = "Toggle BOLO List", msg = { type = "toggleBolo" } },
     radarToggleKeybinds = { key = Config.Keybinds.ToggleKeybinds, desc = "Toggle Radar Keybinds", msg = { type = "toggleKeybinds" } },
+    radarSpeedLockThreshold = { key = Config.Keybinds.SpeedLockThreshold, desc = "Open Speed Lock Threshold Menu", msg = { type = "openSpeedLockModal" } },
 }
 
 for cmd, info in pairs(simpleCommands) do
     RegisterCommand(cmd, function() SendIfRadarEnabled(info.msg) end, false)
-    RegisterKeyMapping(cmd, info.desc, "keyboard", info.key)
+    -- Only register keybind if key is defined and not empty
+    if info.key and type(info.key) == "string" and info.key:match("%S") then
+        RegisterKeyMapping(cmd, info.desc, "keyboard", info.key)
+    end
 end
+
+-- Added speed lock threshold callback
+RegisterNUICallback("setSpeedLockThreshold", function(data, cb)
+    if data.threshold and data.enabled ~= nil then
+        speedLockThreshold = data.threshold
+        speedLockEnabled = data.enabled
+        
+        if Config.NotificationType == "custom" then
+            ShowNotification("Speed lock threshold set to " .. data.threshold .. " MPH")
+        end
+    end
+    cb({})
+end)
 
 -- NUI callbacks for BOLO, notifications, saving, input focus
 RegisterNUICallback("addBoloPlate", function(data, cb)
@@ -194,6 +217,31 @@ local function DoRadarUpdate(ped, veh)
         frontPlate = fPlate,
         rearPlate  = rPlate
     })
+
+    if speedLockEnabled then
+        if (fSpeed >= speedLockThreshold and fSpeed > 0) or (rSpeed >= speedLockThreshold and rSpeed > 0) then
+            local triggerSpeed = math.max(fSpeed, rSpeed)
+            local triggerPlate = ""
+            local triggerDirection = ""
+            
+            -- Determine which radar triggered the lock
+            if fSpeed >= speedLockThreshold and fSpeed > 0 then
+                triggerPlate = fPlate
+                triggerDirection = "Front"
+            else
+                triggerPlate = rPlate
+                triggerDirection = "Rear"
+            end
+            
+            SendNUIMessage({
+                type = "speedLockTriggered",
+                speed = triggerSpeed,
+                plate = triggerPlate,
+                direction = triggerDirection
+            })
+            speedLockEnabled = false
+        end
+    end
 end
 
 local disableControls = { 1,2,24,25,68,69,70,91,92 }

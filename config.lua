@@ -18,7 +18,7 @@ Config.RestrictToVehicleClass = {
     Class = 18 -- Police vehicles (18)
 }
 
-Config.Keybinds = {
+Config.Keybinds = { -- You can set these as nil if you don't want it to be something you open with a keybind.
     ToggleRadar = "F6",         -- Toggle radar on/off
     Interact = "F7",                -- Interact with radar UI
     SaveReading = "J",              -- Save current reading
@@ -27,7 +27,8 @@ Config.Keybinds = {
     SelectRear = "RIGHT",           -- Select rear radar
     ToggleLog = "F10",                -- Toggle log panel
     ToggleBolo = "F11",               -- Toggle BOLO list
-    ToggleKeybinds = "F12"            -- Toggle keybinds display
+    ToggleKeybinds = "F12",           -- Toggle keybinds display
+    SpeedLockThreshold = nil,        -- Open speed lock threshold menu
 }
 
 -- Speed multiplier (2.23694 for MPH, 3.6 for KMH)
