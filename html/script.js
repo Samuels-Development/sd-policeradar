@@ -162,9 +162,10 @@ function setupEventListeners() {
   speedLockBtn.addEventListener("click", openSpeedLockModal)
   logPositionBtn.addEventListener("click", toggleLogPositioning)
   boloPositionBtn.addEventListener("click", toggleBoloPositioning)
-  
+
   frontPanel.addEventListener("click", () => selectDirection("Front"))
   rearPanel.addEventListener("click", () => selectDirection("Rear"))
+
   closeLogBtn.addEventListener("click", () => {
     state.showLog = false
     logPanel.classList.add("hidden")
@@ -175,18 +176,23 @@ function setupEventListeners() {
     boloPanel.classList.add("hidden")
     boloBtn.classList.remove("active")
   })
+
   addBoloPlateBtn.addEventListener("click", showBoloModal)
   closeBoloBtnModal.addEventListener("click", hideBoloModal)
   addBoloBtn.addEventListener("click", addBoloPlate)
+
   closeSpeedLockModalBtn.addEventListener("click", closeSpeedLockModal)
   setSpeedLockBtn.addEventListener("click", setSpeedLockThreshold)
   disableSpeedLockBtn.addEventListener("click", disableSpeedLock)
-
   speedLockInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-      setSpeedLockThreshold()
-    }
+    if (e.key === "Enter") setSpeedLockThreshold()
   })
+
+  radarPanel.addEventListener("mousedown", handleRadarMouseDown)
+  logPanel.addEventListener("mousedown", handleLogMouseDown)
+  boloPanel.addEventListener("mousedown", handleBoloMouseDown)
+  document.addEventListener("mousemove", handleMouseMove)
+  document.addEventListener("mouseup", handleMouseUp)
 }
 
 function updateUIValues(data) {
