@@ -72,6 +72,14 @@ let dragOffset = { x: 0, y: 0 }
 let logDragOffset = { x: 0, y: 0 }
 let boloDragOffset = { x: 0, y: 0 }
 
+let isResizing = false
+let isLogResizing = false
+let isBoloResizing = false
+let resizeHandle = null
+let resizeStartPos = { x: 0, y: 0 }
+let resizeStartSize = { width: 0, height: 0 }
+let resizeStartOffset = { x: 0, y: 0 }
+
 let animationFrameId = null
 const currentMousePos = { x: 0, y: 0 }
 
@@ -80,15 +88,21 @@ function savePositions() {
     radar: {
       left: radarPanel.style.left,
       top: radarPanel.style.top,
+      width: radarPanel.style.width,
+      height: radarPanel.style.height,
     },
     log: {
       left: logPanel.style.left,
       top: logPanel.style.top,
+      width: logPanel.style.width,
+      height: logPanel.style.height,
     },
     bolo: {
       left: boloPanel.style.left,
       top: boloPanel.style.top,
       right: boloPanel.style.right,
+      width: boloPanel.style.width,
+      height: boloPanel.style.height,
     },
   }
 
@@ -102,23 +116,30 @@ function savePositions() {
 }
 
 function handleMouseUp() {
-  if (isDragging || isLogDragging || isBolosDragging) {
+  if (isDragging || isLogDragging || isBolosDragging || isResizing || isLogResizing || isBoloResizing) {
     savePositions()
 
-    if (isDragging) {
+    if (isDragging || isResizing) {
       radarPanel.style.transition = "transform 0.2s ease, box-shadow 0.2s ease"
+      radarPanel.classList.remove("resizing")
     }
-    if (isLogDragging) {
+    if (isLogDragging || isLogResizing) {
       logPanel.style.transition = "transform 0.2s ease, box-shadow 0.2s ease"
+      logPanel.classList.remove("resizing")
     }
-    if (isBolosDragging) {
+    if (isBolosDragging || isBoloResizing) {
       boloPanel.style.transition = "transform 0.2s ease, box-shadow 0.2s ease"
+      boloPanel.classList.remove("resizing")
     }
   }
 
   isDragging = false
   isLogDragging = false
   isBolosDragging = false
+  isResizing = false
+  isLogResizing = false
+  isBoloResizing = false
+  resizeHandle = null
   document.body.style.cursor = "default"
 
   if (animationFrameId) {
@@ -152,11 +173,15 @@ function applyPositions(positions) {
   if (positions.radar) {
     if (positions.radar.left) radarPanel.style.left = positions.radar.left
     if (positions.radar.top) radarPanel.style.top = positions.radar.top
+    if (positions.radar.width) radarPanel.style.width = positions.radar.width
+    if (positions.radar.height) radarPanel.style.height = positions.radar.height
   }
 
   if (positions.log) {
     if (positions.log.left) logPanel.style.left = positions.log.left
     if (positions.log.top) logPanel.style.top = positions.log.top
+    if (positions.log.width) logPanel.style.width = positions.log.width
+    if (positions.log.height) logPanel.style.height = positions.log.height
   }
 
   if (positions.bolo) {
@@ -167,6 +192,8 @@ function applyPositions(positions) {
       boloPanel.style.right = positions.bolo.right
     }
     if (positions.bolo.top) boloPanel.style.top = positions.bolo.top
+    if (positions.bolo.width) boloPanel.style.width = positions.bolo.width
+    if (positions.bolo.height) boloPanel.style.height = positions.bolo.height
   }
 }
 
@@ -211,6 +238,44 @@ function setupEventListeners() {
   boloPanel.addEventListener("mousedown", handleBoloMouseDown)
   document.addEventListener("mousemove", handleMouseMove)
   document.addEventListener("mouseup", handleMouseUp)
+
+  setupResizeHandlers(radarPanel, "radar")
+  setupResizeHandlers(logPanel, "log")
+  setupResizeHandlers(boloPanel, "bolo")
+}
+
+function setupResizeHandlers(panel, panelType) {
+  const handles = panel.querySelectorAll(".resize-handle")
+  handles.forEach((handle) => {
+    handle.addEventListener("mousedown", (e) => {
+      e.stopPropagation()
+      e.preventDefault()
+
+      if (panelType === "radar") {
+        isResizing = true
+        panel.classList.add("resizing")
+      } else if (panelType === "log") {
+        isLogResizing = true
+        panel.classList.add("resizing")
+      } else if (panelType === "bolo") {
+        isBoloResizing = true
+        panel.classList.add("resizing")
+      }
+
+      resizeHandle = handle.className
+        .split(" ")
+        .find((cls) => cls.startsWith("resize-handle-"))
+        .replace("resize-handle-", "")
+
+      const rect = panel.getBoundingClientRect()
+      resizeStartPos = { x: e.clientX, y: e.clientY }
+      resizeStartSize = { width: rect.width, height: rect.height }
+      resizeStartOffset = { x: rect.left, y: rect.top }
+
+      panel.style.transition = "none"
+      document.body.style.cursor = handle.style.cursor
+    })
+  })
 }
 
 function updateUIValues(data) {
@@ -297,6 +362,8 @@ function checkBoloMatch(direction, plate) {
 }
 
 function handleRadarMouseDown(e) {
+  if (e.target.classList.contains("resize-handle")) return
+
   if (!state.isPositioning) return
   isDragging = true
   document.body.style.cursor = "move"
@@ -313,6 +380,8 @@ function handleRadarMouseDown(e) {
 }
 
 function handleLogMouseDown(e) {
+  if (e.target.classList.contains("resize-handle")) return
+
   if (!state.isLogPositioning) return
   isLogDragging = true
   document.body.style.cursor = "move"
@@ -328,6 +397,8 @@ function handleLogMouseDown(e) {
 }
 
 function handleBoloMouseDown(e) {
+  if (e.target.classList.contains("resize-handle")) return
+
   if (!state.isBoloPositioning) return
   isBolosDragging = true
   document.body.style.cursor = "move"
@@ -343,7 +414,7 @@ function handleBoloMouseDown(e) {
 }
 
 function handleMouseMove(e) {
-  if (!isDragging && !isLogDragging && !isBolosDragging) return
+  if (!isDragging && !isLogDragging && !isBolosDragging && !isResizing && !isLogResizing && !isBoloResizing) return
 
   currentMousePos.x = e.clientX
   currentMousePos.y = e.clientY
@@ -393,10 +464,102 @@ function updateElementPositions() {
     boloPanel.style.top = `${clampedY}px`
   }
 
+  if (isResizing) {
+    handleResize(radarPanel, "radar")
+  }
+
+  if (isLogResizing) {
+    handleResize(logPanel, "log")
+  }
+
+  if (isBoloResizing) {
+    handleResize(boloPanel, "bolo")
+  }
+
   animationFrameId = null
 
-  if (isDragging || isLogDragging || isBolosDragging) {
+  if (isDragging || isLogDragging || isBolosDragging || isResizing || isLogResizing || isBoloResizing) {
     animationFrameId = requestAnimationFrame(updateElementPositions)
+  }
+}
+
+function handleResize(panel, panelType) {
+  const deltaX = currentMousePos.x - resizeStartPos.x
+  const deltaY = currentMousePos.y - resizeStartPos.y
+
+  let newWidth = resizeStartSize.width
+  let newHeight = resizeStartSize.height
+  let newLeft = resizeStartOffset.x
+  let newTop = resizeStartOffset.y
+
+  let minWidth, maxWidth, minHeight, maxHeight
+  if (panelType === "radar") {
+    minWidth = 320
+    maxWidth = 600
+    minHeight = 280
+    maxHeight = 500
+  } else if (panelType === "log") {
+    minWidth = 320
+    maxWidth = 600
+    minHeight = 250
+    maxHeight = 700
+  } else if (panelType === "bolo") {
+    minWidth = 280
+    maxWidth = 500
+    minHeight = 200
+    maxHeight = 600
+  }
+
+  switch (resizeHandle) {
+    case "se":
+      newWidth = Math.max(minWidth, Math.min(maxWidth, resizeStartSize.width + deltaX))
+      newHeight = Math.max(minHeight, Math.min(maxHeight, resizeStartSize.height + deltaY))
+      break
+    case "sw":
+      newWidth = Math.max(minWidth, Math.min(maxWidth, resizeStartSize.width - deltaX))
+      newHeight = Math.max(minHeight, Math.min(maxHeight, resizeStartSize.height + deltaY))
+      newLeft = resizeStartOffset.x + (resizeStartSize.width - newWidth)
+      break
+    case "ne":
+      newWidth = Math.max(minWidth, Math.min(maxWidth, resizeStartSize.width + deltaX))
+      newHeight = Math.max(minHeight, Math.min(maxHeight, resizeStartSize.height - deltaY))
+      newTop = resizeStartOffset.y + (resizeStartSize.height - newHeight)
+      break
+    case "nw":
+      newWidth = Math.max(minWidth, Math.min(maxWidth, resizeStartSize.width - deltaX))
+      newHeight = Math.max(minHeight, Math.min(maxHeight, resizeStartSize.height - deltaY))
+      newLeft = resizeStartOffset.x + (resizeStartSize.width - newWidth)
+      newTop = resizeStartOffset.y + (resizeStartSize.height - newHeight)
+      break
+    case "n":
+      newHeight = Math.max(minHeight, Math.min(maxHeight, resizeStartSize.height - deltaY))
+      newTop = resizeStartOffset.y + (resizeStartSize.height - newHeight)
+      break
+    case "s":
+      newHeight = Math.max(minHeight, Math.min(maxHeight, resizeStartSize.height + deltaY))
+      break
+    case "w":
+      newWidth = Math.max(minWidth, Math.min(maxWidth, resizeStartSize.width - deltaX))
+      newLeft = resizeStartOffset.x + (resizeStartSize.width - newWidth)
+      break
+    case "e":
+      newWidth = Math.max(minWidth, Math.min(maxWidth, resizeStartSize.width + deltaX))
+      break
+  }
+
+  const maxLeft = window.innerWidth - newWidth
+  const maxTop = window.innerHeight - newHeight
+
+  newLeft = Math.max(0, Math.min(newLeft, maxLeft))
+  newTop = Math.max(0, Math.min(newTop, maxTop))
+
+  panel.style.width = `${newWidth}px`
+  panel.style.height = `${newHeight}px`
+  panel.style.left = `${newLeft}px`
+  panel.style.top = `${newTop}px`
+
+  if (panel === boloPanel && (resizeHandle.includes("w") || resizeHandle.includes("e"))) {
+    panel.style.right = "auto"
   }
 }
 

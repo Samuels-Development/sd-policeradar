@@ -48,6 +48,109 @@ body {
   -webkit-backface-visibility: hidden;
 }
 
+.resizing {
+  box-shadow: 0 0 0 2px var(--accent-warning);
+  transition: all 0.2s ease;
+  will-change: transform, box-shadow;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.positioning .resize-handle,
+.resizing .resize-handle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.resize-handle {
+  position: absolute;
+  background: var(--accent-primary);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.resize-handle:hover {
+  background: var(--accent-warning);
+}
+
+.resize-handle-nw {
+  top: -4px;
+  left: -4px;
+  width: 12px;
+  height: 12px;
+  cursor: nw-resize;
+  border-radius: 2px;
+}
+
+.resize-handle-ne {
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  cursor: ne-resize;
+  border-radius: 2px;
+}
+
+.resize-handle-sw {
+  bottom: -4px;
+  left: -4px;
+  width: 12px;
+  height: 12px;
+  cursor: sw-resize;
+  border-radius: 2px;
+}
+
+.resize-handle-se {
+  bottom: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  cursor: se-resize;
+  border-radius: 2px;
+}
+
+.resize-handle-n {
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 8px;
+  cursor: n-resize;
+  border-radius: 4px;
+}
+
+.resize-handle-s {
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 8px;
+  cursor: s-resize;
+  border-radius: 4px;
+}
+
+.resize-handle-w {
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 20px;
+  cursor: w-resize;
+  border-radius: 4px;
+}
+
+.resize-handle-e {
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 20px;
+  cursor: e-resize;
+  border-radius: 4px;
+}
+
 .notification {
   position: fixed;
   top: 24px;
@@ -98,6 +201,9 @@ body {
   will-change: transform;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .card:hover {
@@ -194,6 +300,10 @@ body {
   position: fixed;
   z-index: 50;
   width: 380px;
+  min-width: 320px;
+  max-width: 600px;
+  min-height: 280px;
+  max-height: 500px;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
@@ -352,7 +462,10 @@ body {
   position: fixed;
   z-index: 40;
   width: 320px;
-  max-height: 400px;
+  min-width: 280px;
+  max-width: 500px;
+  min-height: 200px;
+  max-height: 600px;
   overflow: auto;
   will-change: transform, left, top;
   backface-visibility: hidden;
@@ -552,7 +665,10 @@ body {
   position: fixed;
   z-index: 40;
   width: 380px;
-  max-height: 500px;
+  min-width: 320px;
+  max-width: 600px;
+  min-height: 250px;
+  max-height: 700px;
   overflow: auto;
   will-change: transform, left, top;
   backface-visibility: hidden;
@@ -761,6 +877,7 @@ body {
 @media (max-width: 768px) {
   .radar-panel {
     width: 340px;
+    min-width: 300px;
   }
 
   .speed-displays {
