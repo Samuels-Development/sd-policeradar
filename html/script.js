@@ -72,6 +72,9 @@ let dragOffset = { x: 0, y: 0 }
 let logDragOffset = { x: 0, y: 0 }
 let boloDragOffset = { x: 0, y: 0 }
 
+let animationFrameId = null
+const currentMousePos = { x: 0, y: 0 }
+
 function savePositions() {
   const positions = {
     radar: {
@@ -101,12 +104,27 @@ function savePositions() {
 function handleMouseUp() {
   if (isDragging || isLogDragging || isBolosDragging) {
     savePositions()
+
+    if (isDragging) {
+      radarPanel.style.transition = "transform 0.2s ease, box-shadow 0.2s ease"
+    }
+    if (isLogDragging) {
+      logPanel.style.transition = "transform 0.2s ease, box-shadow 0.2s ease"
+    }
+    if (isBolosDragging) {
+      boloPanel.style.transition = "transform 0.2s ease, box-shadow 0.2s ease"
+    }
   }
 
   isDragging = false
   isLogDragging = false
   isBolosDragging = false
   document.body.style.cursor = "default"
+
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId)
+    animationFrameId = null
+  }
 }
 
 function init() {
@@ -282,6 +300,10 @@ function handleRadarMouseDown(e) {
   if (!state.isPositioning) return
   isDragging = true
   document.body.style.cursor = "move"
+
+  // Disable transitions during dragging for immediate response
+  radarPanel.style.transition = "none"
+
   const rect = radarPanel.getBoundingClientRect()
   dragOffset = {
     x: e.clientX - rect.left,
@@ -294,6 +316,9 @@ function handleLogMouseDown(e) {
   if (!state.isLogPositioning) return
   isLogDragging = true
   document.body.style.cursor = "move"
+
+  logPanel.style.transition = "none"
+
   const rect = logPanel.getBoundingClientRect()
   logDragOffset = {
     x: e.clientX - rect.left,
@@ -306,6 +331,9 @@ function handleBoloMouseDown(e) {
   if (!state.isBoloPositioning) return
   isBolosDragging = true
   document.body.style.cursor = "move"
+
+  boloPanel.style.transition = "none"
+
   const rect = boloPanel.getBoundingClientRect()
   boloDragOffset = {
     x: e.clientX - rect.left,
@@ -315,29 +343,60 @@ function handleBoloMouseDown(e) {
 }
 
 function handleMouseMove(e) {
+  if (!isDragging && !isLogDragging && !isBolosDragging) return
+
+  currentMousePos.x = e.clientX
+  currentMousePos.y = e.clientY
+
+  if (!animationFrameId) {
+    animationFrameId = requestAnimationFrame(updateElementPositions)
+  }
+}
+
+function updateElementPositions() {
   if (isDragging) {
-    const newX = e.clientX - dragOffset.x
-    const newY = e.clientY - dragOffset.y
+    const newX = currentMousePos.x - dragOffset.x
+    const newY = currentMousePos.y - dragOffset.y
     const maxX = window.innerWidth - radarPanel.offsetWidth
     const maxY = window.innerHeight - radarPanel.offsetHeight
-    radarPanel.style.left = `${Math.max(0, Math.min(newX, maxX))}px`
-    radarPanel.style.top = `${Math.max(0, Math.min(newY, maxY))}px`
+
+    const clampedX = Math.max(0, Math.min(newX, maxX))
+    const clampedY = Math.max(0, Math.min(newY, maxY))
+
+    radarPanel.style.left = `${clampedX}px`
+    radarPanel.style.top = `${clampedY}px`
   }
+
   if (isLogDragging) {
-    const newX = e.clientX - logDragOffset.x
-    const newY = e.clientY - logDragOffset.y
+    const newX = currentMousePos.x - logDragOffset.x
+    const newY = currentMousePos.y - logDragOffset.y
     const maxX = window.innerWidth - logPanel.offsetWidth
     const maxY = window.innerHeight - logPanel.offsetHeight
-    logPanel.style.left = `${Math.max(0, Math.min(newX, maxX))}px`
-    logPanel.style.top = `${Math.max(0, Math.min(newY, maxY))}px`
+
+    const clampedX = Math.max(0, Math.min(newX, maxX))
+    const clampedY = Math.max(0, Math.min(newY, maxY))
+
+    logPanel.style.left = `${clampedX}px`
+    logPanel.style.top = `${clampedY}px`
   }
+
   if (isBolosDragging) {
-    const newX = e.clientX - boloDragOffset.x
-    const newY = e.clientY - boloDragOffset.y
+    const newX = currentMousePos.x - boloDragOffset.x
+    const newY = currentMousePos.y - boloDragOffset.y
     const maxX = window.innerWidth - boloPanel.offsetWidth
     const maxY = window.innerHeight - boloPanel.offsetHeight
-    boloPanel.style.left = `${Math.max(0, Math.min(newX, maxX))}px`
-    boloPanel.style.top = `${Math.max(0, Math.min(newY, maxY))}px`
+
+    const clampedX = Math.max(0, Math.min(newX, maxX))
+    const clampedY = Math.max(0, Math.min(newY, maxY))
+
+    boloPanel.style.left = `${clampedX}px`
+    boloPanel.style.top = `${clampedY}px`
+  }
+
+  animationFrameId = null
+
+  if (isDragging || isLogDragging || isBolosDragging) {
+    animationFrameId = requestAnimationFrame(updateElementPositions)
   }
 }
 
@@ -429,7 +488,7 @@ function toggleRadar() {
       statusIndicator.classList.remove("locked")
       statusIndicator.classList.add("unlocked")
     }
-    
+
     if (speedLockThreshold > 0 && !speedLockUserDisabled) {
       speedLockEnabled = true
       fetch("https://sd-policeradar/setSpeedLockThreshold", {
@@ -551,7 +610,7 @@ function initializeSelection() {
   updateDirectionHint()
 
   radarTitle.innerHTML = `<div class="status-indicator ${state.isActive ? "unlocked" : "locked"}"></div>${state.isActive ? "UNLOCKED" : "LOCKED"}`
-  
+
   lockBtn.innerHTML = state.isActive ? '<i class="fa-solid fa-unlock"></i>' : '<i class="fa-solid fa-lock"></i>'
 }
 
@@ -639,7 +698,7 @@ function showNotification(message) {
 }
 
 function isValidKeybind(key) {
-  return key && typeof key === 'string' && key.trim() !== ''
+  return key && typeof key === "string" && key.trim() !== ""
 }
 
 function updateKeybindsDisplay(keybinds) {
@@ -648,7 +707,7 @@ function updateKeybindsDisplay(keybinds) {
   if (!keybindsList) return
 
   keybindsList.innerHTML = ""
-  
+
   if (isValidKeybind(keybinds.ToggleRadar)) {
     addKeybindRow(keybindsList, "Toggle Radar", keybinds.ToggleRadar)
   }
@@ -784,8 +843,7 @@ function updateRadarData() {
         rearPlate.textContent = data.rear.plate || "--------"
 
         if (data.rear.speed && Number.parseInt(data.rear.speed) >= speedLockThreshold && speedLockEnabled) {
-          
-          toggleRadar() 
+          toggleRadar()
           lastLockTrigger = data.rear.plate || "Unknown Vehicle"
           showNotification(`Auto-locked: ${lastLockTrigger} - Speed ${data.rear.speed} MPH exceeds threshold`)
         }
@@ -832,11 +890,13 @@ window.addEventListener("message", (event) => {
     applyPositions(data.positions)
   } else if (data.type === "speedLockTriggered") {
     if (speedLockEnabled) {
-      toggleRadar() 
+      toggleRadar()
       lastLockTrigger = data.plate || "Unknown Vehicle"
-      
+
       const plateInfo = data.plate && data.plate !== "--------" ? ` (${data.plate})` : ""
-      showNotification(`Auto-locked: ${data.direction} radar - ${data.speed} MPH${plateInfo} exceeds ${speedLockThreshold} MPH threshold`)
+      showNotification(
+        `Auto-locked: ${data.direction} radar - ${data.speed} MPH${plateInfo} exceeds ${speedLockThreshold} MPH threshold`,
+      )
     }
   } else if (data.type === "openSpeedLockModal") {
     openSpeedLockModal()
