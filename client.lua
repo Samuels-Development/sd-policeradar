@@ -1,134 +1,386 @@
-local radarEnabled = false
-local radarWasEnabled = false
-local interacting = false
-local inputActive = false
-local boloPlates = {}
-local speedLockThreshold = 80
-local speedLockEnabled = false
+-- Cached native functions for better performance
+local PlayerPedId = PlayerPedId
+local IsPedInAnyVehicle = IsPedInAnyVehicle
+local GetVehiclePedIsIn = GetVehiclePedIsIn
+local GetVehicleClass = GetVehicleClass
+local GetEntityCoords = GetEntityCoords
+local GetEntityForwardVector = GetEntityForwardVector
+local GetOffsetFromEntityInWorldCoords = GetOffsetFromEntityInWorldCoords
+local StartShapeTestCapsule = StartShapeTestCapsule
+local GetShapeTestResult = GetShapeTestResult
+local IsEntityAVehicle = IsEntityAVehicle
+local GetEntitySpeed = GetEntitySpeed
+local GetVehicleNumberPlateText = GetVehicleNumberPlateText
+local GetGameTimer = GetGameTimer
+local Wait = Wait
+local vector3 = vector3
+local pairs = pairs
+local ipairs = ipairs
+local table_insert = table.insert
+local table_remove = table.remove
+local string_upper = string.upper
+local math_ceil = math.ceil
+local math_max = math.max
 
--- Send NUI messages only when radar is enabled
-local function SendIfRadarEnabled(message)
-    if radarEnabled then
-        SendNUIMessage(message)
+-- State management
+local state = {
+    radarEnabled = false,
+    radarWasEnabled = false,
+    interacting = false,
+    inputActive = false,
+    speedLockThreshold = 80,
+    speedLockEnabled = false,
+    lastUpdate = 0,
+    currentVehicle = 0,
+    lastFrontPlate = "",
+    lastRearPlate = "",
+    lastFrontSpeed = 0,
+    lastRearSpeed = 0
+}
+
+-- BOLO system
+local boloPlates = {}
+local boloLookup = {} -- Lookup table for O(1) plate checking
+
+-- Control groups cache (pre-calculated once)
+local controlGroups = {
+    interact = {1,2,24,25,68,69,70,91,92},
+    typing = {
+        1,2,24,25,68,69,70,91,92,30,31,32,33,34,35,
+        71,72,73,74,75,76,59,60,61,62,63,64,65,
+        8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,
+        44,45,46,47,48,49,50,51,140,141,142,143,144,
+        177,178,179,180,181,199,200,201,202,203,204,322
+    },
+    scrollWheel = {14,15,81,82,99,100,115,116,261,262}
+}
+
+-- Cache for saved positions
+local savedPositionsCache = nil
+
+-- Thread management
+local radarThread = nil
+local controlThread = nil
+
+-- Cache update interval in MS (convert once)
+local updateInterval = Config.UpdateInterval or 100
+
+-- Pre-calculate speed multiplier
+local speedMultiplier = Config.SpeedMultiplier or 2.236936
+
+-- Cache config values
+local frontRange = Config.FrontDetectionRange or 30.0
+local rearRange = Config.RearDetectionRange or 30.0
+local restrictClass = Config.RestrictToVehicleClass and Config.RestrictToVehicleClass.Enable
+local vehicleClass = Config.RestrictToVehicleClass and Config.RestrictToVehicleClass.Class
+local reopenAfterLeave = Config.ReopenRadarAfterLeave
+local notificationType = Config.NotificationType
+
+local function SendIfRadarEnabled(msg)
+    if state.radarEnabled then
+        SendNUIMessage(msg)
     end
 end
 
--- Load/save radar UI positions from resource KVP
 local function LoadSavedPositions()
+    if savedPositionsCache then
+        return savedPositionsCache
+    end
     local jsonStr = GetResourceKvpString("radar_positions")
-    return jsonStr and json.decode(jsonStr) or nil
+    savedPositionsCache = jsonStr and json.decode(jsonStr) or nil
+    return savedPositionsCache
 end
 
 local function SavePositions(positions)
     if positions then
+        savedPositionsCache = positions
         SetResourceKvp("radar_positions", json.encode(positions))
     end
 end
 
--- Toggle the radar UI open/close
+local function IsValidRadarVehicle(ped, veh)
+    if veh == 0 then
+        return false
+    end
+    
+    if not restrictClass then
+        return true
+    end
+    
+    return GetVehicleClass(veh) == vehicleClass
+end
+
+-- Open radar UI with all necessary messages
+local function OpenRadarUI()
+    local messages = {
+        {type = "open"},
+        {type = "setKeybinds", keybinds = Config.Keybinds},
+        {type = "setNotificationType", notificationType = notificationType},
+        {type = "setSpeedUnit", speedUnit = Config.SpeedUnit}
+    }
+    
+    local saved = LoadSavedPositions()
+    if saved then
+        messages[#messages + 1] = {type = "loadPositions", positions = saved}
+    end
+    
+    if #boloPlates > 0 then
+        messages[#messages + 1] = {type = "updateBoloPlates", plates = boloPlates}
+    end
+    
+    for i = 1, #messages do
+        SendNUIMessage(messages[i])
+    end
+end
+
+-- Close radar UI
+local function CloseRadarUI()
+    state.interacting = false
+    state.inputActive = false
+    SetNuiFocus(false, false)
+    SendNUIMessage({type = "close"})
+end
+
+-- Toggle radar
 local function ToggleRadar()
     local ped = PlayerPedId()
-    if not IsPedInAnyVehicle(ped, false) then
+    local veh = GetVehiclePedIsIn(ped, false)
+    
+    if not IsValidRadarVehicle(ped, veh) then
         return
     end
 
-    if Config.RestrictToVehicleClass.Enable then
-        local veh = GetVehiclePedIsIn(ped, false)
-        local vehClass = GetVehicleClass(veh)
-        if vehClass ~= Config.RestrictToVehicleClass.Class then
-            return
-        end
-    end
+    state.radarEnabled = not state.radarEnabled
 
-    radarEnabled = not radarEnabled
-
-    if radarEnabled then
-        radarWasEnabled = false
-        SendNUIMessage({ type = "open" })
-        SendNUIMessage({ type = "setKeybinds", keybinds = Config.Keybinds })
-        SendNUIMessage({ type = "setNotificationType", notificationType = Config.NotificationType })
-        SendNUIMessage({ type = "setSpeedUnit", speedUnit = Config.SpeedUnit })
-
-        local saved = LoadSavedPositions()
-        if saved then
-            SendNUIMessage({ type = "loadPositions", positions = saved })
+    if state.radarEnabled then
+        state.radarWasEnabled = false
+        state.currentVehicle = veh
+        OpenRadarUI()
+        
+        if not radarThread then
+            radarThread = CreateThread(RadarUpdateLoop)
         end
     else
-        interacting = false
-        inputActive = false
-        SetNuiFocus(false, false)
-        SendNUIMessage({ type = "close" })
+        CloseRadarUI()
     end
 end
 
--- Register slash command and keybind to toggle
+-- radar update (only send changes)
+local function DoRadarUpdate(ped, veh)
+    local pos = GetEntityCoords(ped)
+    local forward = GetEntityForwardVector(ped)
+    
+    local fx, fy = forward.x * frontRange, forward.y * frontRange
+    local rx, ry = forward.x * rearRange, forward.y * rearRange
+    
+    local frontTarget = vector3(pos.x + fx, pos.y + fy, pos.z)
+    local rearTarget = vector3(pos.x - rx, pos.y - ry, pos.z)
+    
+    local startPos = GetOffsetFromEntityInWorldCoords(veh, 0.0, 1.0, 1.0)
+    
+    local fSpeed, fPlate = 0, ""
+    local fRay = StartShapeTestCapsule(startPos, frontTarget, 6.0, 10, veh, 7)
+    local _, _, _, _, fEnt = GetShapeTestResult(fRay)
+    
+    if IsEntityAVehicle(fEnt) then
+        fSpeed = math_ceil(GetEntitySpeed(fEnt) * speedMultiplier)
+        fPlate = GetVehicleNumberPlateText(fEnt) or ""
+        
+        if fPlate ~= "" and fPlate ~= state.lastFrontPlate then
+            TriggerEvent('sd-policeradar:onPlateScanned', {
+                plate = fPlate,
+                speed = fSpeed,
+                direction = "front",
+                vehicle = fEnt
+            })
+        end
+    end
+    
+    local rSpeed, rPlate = 0, ""
+    local rRay = StartShapeTestCapsule(startPos, rearTarget, 3.0, 10, veh, 7)
+    local _, _, _, _, rEnt = GetShapeTestResult(rRay)
+    
+    if IsEntityAVehicle(rEnt) then
+        rSpeed = math_ceil(GetEntitySpeed(rEnt) * speedMultiplier)
+        rPlate = GetVehicleNumberPlateText(rEnt) or ""
+        
+        if rPlate ~= "" and rPlate ~= state.lastRearPlate then
+            TriggerEvent('sd-policeradar:onPlateScanned', {
+                plate = rPlate,
+                speed = rSpeed,
+                direction = "rear",
+                vehicle = rEnt
+            })
+        end
+    end
+    
+    if fSpeed ~= state.lastFrontSpeed or rSpeed ~= state.lastRearSpeed or 
+       fPlate ~= state.lastFrontPlate or rPlate ~= state.lastRearPlate then
+        
+        SendNUIMessage({
+            type = "update",
+            frontSpeed = fSpeed,
+            rearSpeed = rSpeed,
+            frontPlate = fPlate,
+            rearPlate = rPlate
+        })
+        
+        state.lastFrontSpeed = fSpeed
+        state.lastRearSpeed = rSpeed
+        state.lastFrontPlate = fPlate
+        state.lastRearPlate = rPlate
+    end
+    
+    if state.speedLockEnabled then
+        if (fSpeed >= state.speedLockThreshold or rSpeed >= state.speedLockThreshold) then
+            local triggerSpeed = math_max(fSpeed, rSpeed)
+            
+            SendNUIMessage({
+                type = "speedLockTriggered",
+                speed = triggerSpeed,
+                plate = fSpeed >= state.speedLockThreshold and fPlate or rPlate,
+                direction = fSpeed >= state.speedLockThreshold and "Front" or "Rear"
+            })
+            state.speedLockEnabled = false
+        end
+    end
+end
+
+-- Dedicated radar update thread (only runs when needed)
+function RadarUpdateLoop()
+    while state.radarEnabled do
+        local now = GetGameTimer()
+        
+        if now - state.lastUpdate >= updateInterval then
+            state.lastUpdate = now
+            
+            local ped = PlayerPedId()
+            local veh = GetVehiclePedIsIn(ped, false)
+            
+            if veh ~= 0 then
+                DoRadarUpdate(ped, veh)
+            else
+                if reopenAfterLeave then
+                    state.radarWasEnabled = true
+                end
+                CloseRadarUI()
+                state.radarEnabled = false
+                break
+            end
+        end
+        
+        Wait(50)
+    end
+    
+    radarThread = nil
+end
+
+-- Dedicated control disabling thread (only runs when needed)
+function ControlDisableLoop()
+    while state.inputActive or state.interacting do
+        if state.inputActive then
+            for i = 1, #controlGroups.typing do
+                DisableControlAction(0, controlGroups.typing[i], true)
+            end
+            for i = 0, 2 do
+                for j = 1, #controlGroups.scrollWheel do
+                    DisableControlAction(i, controlGroups.scrollWheel[j], true)
+                end
+            end
+        elseif state.interacting then
+            for i = 1, #controlGroups.interact do
+                DisableControlAction(0, controlGroups.interact[i], true)
+            end
+            for i = 0, 2 do
+                for j = 1, #controlGroups.scrollWheel do
+                    DisableControlAction(i, controlGroups.scrollWheel[j], true)
+                end
+            end
+        end
+        
+        Wait(0)
+    end
+    
+    controlThread = nil
+end
+
+-- Command registration
 RegisterCommand("radar", ToggleRadar, false)
-if Config.Keybinds.ToggleRadar and type(Config.Keybinds.ToggleRadar) == "string" and Config.Keybinds.ToggleRadar:match("%S") then
+if Config.Keybinds.ToggleRadar and Config.Keybinds.ToggleRadar:match("%S") then
     RegisterKeyMapping("radar", "Toggle Radar", "keyboard", Config.Keybinds.ToggleRadar)
 end
 
--- Toggle UI interaction mode
 RegisterCommand("radarInteract", function()
-    if radarEnabled then
-        interacting = not interacting
-        SetNuiFocus(interacting, interacting)
-        SetNuiFocusKeepInput(interacting)
+    if state.radarEnabled then
+        state.interacting = not state.interacting
+        SetNuiFocus(state.interacting, state.interacting)
+        SetNuiFocusKeepInput(state.interacting)
+        
+        if state.interacting and not controlThread then
+            controlThread = CreateThread(ControlDisableLoop)
+        end
     end
 end, false)
-if Config.Keybinds.Interact and type(Config.Keybinds.Interact) == "string" and Config.Keybinds.Interact:match("%S") then
+if Config.Keybinds.Interact and Config.Keybinds.Interact:match("%S") then
     RegisterKeyMapping("radarInteract", "Interact with Radar UI", "keyboard", Config.Keybinds.Interact)
 end
 
+-- Simple command registration
 local simpleCommands = {
-    radarSave = { key = Config.Keybinds.SaveReading, desc = "Save Radar Reading", msg = { type = "saveReading" } },
-    radarLock  = { key = Config.Keybinds.LockRadar, desc = "Toggle Radar Lock", msg = { type = "toggleLock" } },
-    radarSelectFront = { key = Config.Keybinds.SelectFront, desc = "Select Front", msg = { type = "selectDirection", data = "Front" } },
-    radarSelectRear = { key = Config.Keybinds.SelectRear, desc = "Select Rear", msg = { type = "selectDirection", data = "Rear" } },
-    radarToggleLog = { key = Config.Keybinds.ToggleLog, desc = "Toggle Radar Log", msg = { type = "toggleLog" } },
-    radarToggleBolo = { key = Config.Keybinds.ToggleBolo, desc = "Toggle BOLO List", msg = { type = "toggleBolo" } },
-    radarToggleKeybinds = { key = Config.Keybinds.ToggleKeybinds, desc = "Toggle Radar Keybinds", msg = { type = "toggleKeybinds" } },
-    radarSpeedLockThreshold = { key = Config.Keybinds.SpeedLockThreshold, desc = "Open Speed Lock Threshold Menu", msg = { type = "openSpeedLockModal" } },
+    radarSave = {Config.Keybinds.SaveReading, "Save Radar Reading", {type = "saveReading"}},
+    radarLock = {Config.Keybinds.LockRadar, "Toggle Radar Lock", {type = "toggleLock"}},
+    radarSelectFront = {Config.Keybinds.SelectFront, "Select Front", {type = "selectDirection", data = "Front"}},
+    radarSelectRear = {Config.Keybinds.SelectRear, "Select Rear", {type = "selectDirection", data = "Rear"}},
+    radarToggleLog = {Config.Keybinds.ToggleLog, "Toggle Radar Log", {type = "toggleLog"}},
+    radarToggleBolo = {Config.Keybinds.ToggleBolo, "Toggle BOLO List", {type = "toggleBolo"}},
+    radarToggleKeybinds = {Config.Keybinds.ToggleKeybinds, "Toggle Radar Keybinds", {type = "toggleKeybinds"}},
+    radarSpeedLockThreshold = {Config.Keybinds.SpeedLockThreshold, "Open Speed Lock Threshold Menu", {type = "openSpeedLockModal"}},
 }
 
 for cmd, info in pairs(simpleCommands) do
-    RegisterCommand(cmd, function() SendIfRadarEnabled(info.msg) end, false)
-    if info.key and type(info.key) == "string" and info.key:match("%S") then
-        RegisterKeyMapping(cmd, info.desc, "keyboard", info.key)
+    RegisterCommand(cmd, function() SendIfRadarEnabled(info[3]) end, false)
+    if info[1] and info[1]:match("%S") then
+        RegisterKeyMapping(cmd, info[2], "keyboard", info[1])
+        local hash = GetHashKey("+" .. cmd)
+        table_insert(controlGroups.interact, hash)
+        table_insert(controlGroups.typing, hash)
     end
 end
 
--- Added speed lock threshold callback
+-- NUI Callbacks
 RegisterNUICallback("setSpeedLockThreshold", function(data, cb)
-    if data.threshold and data.enabled ~= nil then
-        speedLockThreshold = data.threshold
-        speedLockEnabled = data.enabled
-        
-        if Config.NotificationType == "custom" then
-            ShowNotification("Speed lock threshold set to " .. data.threshold .. " MPH")
-        end
+    state.speedLockThreshold = data.threshold or state.speedLockThreshold
+    state.speedLockEnabled = data.enabled or false
+    
+    if notificationType == "custom" and data.threshold then
+        ShowNotification("Speed lock threshold set to " .. data.threshold .. " MPH")
     end
     cb({})
 end)
 
--- NUI callbacks for BOLO, notifications, saving, input focus
+-- BOLO plate management
 RegisterNUICallback("addBoloPlate", function(data, cb)
     if data.plate then
-        local upperPlate = string.upper(data.plate)
-        table.insert(boloPlates, upperPlate)
-        SendNUIMessage({ type = "updateBoloPlates", plates = boloPlates })
+        local upperPlate = string_upper(data.plate)
+        if not boloLookup[upperPlate] then
+            table_insert(boloPlates, upperPlate)
+            boloLookup[upperPlate] = true
+            SendNUIMessage({type = "updateBoloPlates", plates = boloPlates})
+        end
     end
     cb({})
 end)
 
 RegisterNUICallback("removeBoloPlate", function(data, cb)
-    if data.plate then
-        for i, p in ipairs(boloPlates) do
-            if p == data.plate then
-                table.remove(boloPlates, i)
+    if data.plate and boloLookup[data.plate] then
+        for i = 1, #boloPlates do
+            if boloPlates[i] == data.plate then
+                table_remove(boloPlates, i)
+                boloLookup[data.plate] = nil
                 break
             end
         end
-        SendNUIMessage({ type = "updateBoloPlates", plates = boloPlates })
+        SendNUIMessage({type = "updateBoloPlates", plates = boloPlates})
     end
     cb({})
 end)
@@ -139,7 +391,7 @@ RegisterNUICallback("boloAlert", function(data, cb)
 end)
 
 RegisterNUICallback("showNotification", function(data, cb)
-    if Config.NotificationType == "custom" and data.message then
+    if notificationType == "custom" and data.message then
         ShowNotification(data.message)
     end
     cb({})
@@ -151,260 +403,105 @@ RegisterNUICallback("savePositions", function(data, cb)
 end)
 
 RegisterNUICallback("inputActive", function(data, cb)
-    inputActive = true
+    state.inputActive = true
     SetNuiFocus(true, true)
     SetNuiFocusKeepInput(false)
+    
+    if not controlThread then
+        controlThread = CreateThread(ControlDisableLoop)
+    end
     cb({})
 end)
 
 RegisterNUICallback("inputInactive", function(data, cb)
-    inputActive = false
-    if radarEnabled then
-        SetNuiFocus(interacting, interacting)
-        SetNuiFocusKeepInput(interacting)
+    state.inputActive = false
+    if state.radarEnabled then
+        SetNuiFocus(state.interacting, state.interacting)
+        SetNuiFocusKeepInput(state.interacting)
     else
         SetNuiFocus(false, false)
     end
     cb({})
 end)
 
--- Open/close UI helpers
-local function OpenRadarUI()
-    SendNUIMessage({ type = "open" })
-    SendNUIMessage({ type = "setKeybinds", keybinds = Config.Keybinds })
-    SendNUIMessage({ type = "setNotificationType", notificationType = Config.NotificationType })
-    SendNUIMessage({ type = "setSpeedUnit", speedUnit = Config.SpeedUnit })
-    local saved = LoadSavedPositions()
-    if saved then
-        SendNUIMessage({ type = "loadPositions", positions = saved })
-    end
-end
-
-local function CloseRadarUI()
-    interacting = false
-    inputActive = false
-    SetNuiFocus(false, false)
-    SendNUIMessage({ type = "close" })
-end
-
-local function DoRadarUpdate(ped, veh)
-    local pos     = GetEntityCoords(ped)
-    local forward = GetEntityForwardVector(ped)
-
-    local frontTarget = vector3(
-        pos.x + forward.x * Config.FrontDetectionRange,
-        pos.y + forward.y * Config.FrontDetectionRange,
-        pos.z
-    )
-    local rearTarget = vector3(
-        pos.x - forward.x * Config.RearDetectionRange,
-        pos.y - forward.y * Config.RearDetectionRange,
-        pos.z
-    )
-
-    local startPos = GetOffsetFromEntityInWorldCoords(veh, 0.0, 1.0, 1.0)
-
-    local fRay = StartShapeTestCapsule(startPos, frontTarget, 6.0, 10, veh, 7)
-    local _, _, _, _, fEnt = GetShapeTestResult(fRay)
-    local fSpeed, fPlate = 0, ""
-    if IsEntityAVehicle(fEnt) then
-        fSpeed = math.ceil(GetEntitySpeed(fEnt) * Config.SpeedMultiplier)
-        fPlate = GetVehicleNumberPlateText(fEnt)
-        if fPlate and fPlate ~= "" then
-            TriggerEvent('sd-policeradar:onPlateScanned', {
-                plate = fPlate,
-                speed = fSpeed,
-                direction = "front",
-                vehicle = fEnt
-            })
-        end
-    end
-
-    local rRay = StartShapeTestCapsule(startPos, rearTarget, 3.0, 10, veh, 7)
-    local _, _, _, _, rEnt = GetShapeTestResult(rRay)
-    local rSpeed, rPlate = 0, ""
-    if IsEntityAVehicle(rEnt) then
-        rSpeed = math.ceil(GetEntitySpeed(rEnt) * Config.SpeedMultiplier)
-        rPlate = GetVehicleNumberPlateText(rEnt)
-        if rPlate and rPlate ~= "" then
-            TriggerEvent('sd-policeradar:onPlateScanned', {
-                plate = rPlate,
-                speed = rSpeed,
-                direction = "rear",
-                vehicle = rEnt
-            })
-        end
-    end
-
-    SendNUIMessage({
-        type       = "update",
-        frontSpeed = fSpeed,
-        rearSpeed  = rSpeed,
-        frontPlate = fPlate,
-        rearPlate  = rPlate
-    })
-
-    if speedLockEnabled then
-        if (fSpeed >= speedLockThreshold and fSpeed > 0) or (rSpeed >= speedLockThreshold and rSpeed > 0) then
-            local triggerSpeed = math.max(fSpeed, rSpeed)
-            local triggerPlate = ""
-            local triggerDirection = ""
-            
-            if fSpeed >= speedLockThreshold and fSpeed > 0 then
-                triggerPlate = fPlate
-                triggerDirection = "Front"
-            else
-                triggerPlate = rPlate
-                triggerDirection = "Rear"
-            end
-            
-            SendNUIMessage({
-                type = "speedLockTriggered",
-                speed = triggerSpeed,
-                plate = triggerPlate,
-                direction = triggerDirection
-            })
-            speedLockEnabled = false
-        end
-    end
-end
-
-local interactDisableControls = { 
-    1,2,24,25,68,69,70,91,92 
-}
-
--- Comprehensive list of controls to disable when typing
-local typingDisableControls = { 
-    1,2,24,25,68,69,70,91,92,  -- Original controls
-    30,31,32,33,34,35,          -- Movement controls (A,D,W,S,etc)
-    71,72,73,74,75,76,          -- Vehicle controls
-    59,60,61,62,63,64,65,       -- Vehicle steering/acceleration
-    8,9,10,11,12,13,14,15,      -- Weapon controls
-    16,17,18,19,20,21,22,23,    -- More controls
-    44,45,46,47,48,49,50,51,    -- Cover/reload/etc
-    140,141,142,143,144,        -- Melee controls
-    177,178,179,180,181,        -- Exit vehicle controls (F key)
-    199,200,201,202,203,204,    -- Pause menu controls
-    322                         -- ESC key
-}
-for cmd,_ in pairs(simpleCommands) do
-    table.insert(interactDisableControls, GetHashKey("+" .. cmd))
-    table.insert(typingDisableControls, GetHashKey("+" .. cmd))
-end
-
--- Main thread loop
+-- Main vehicle detection thread (minimal overhead)
 CreateThread(function()
-    local lastUpdate = GetGameTimer()
-
     while true do
         local ped = PlayerPedId()
         local veh = GetVehiclePedIsIn(ped, false)
-        local inVeh = veh ~= 0
-        local now   = GetGameTimer()
-
-        if inVeh then
-            if radarWasEnabled and not radarEnabled then
-                radarEnabled   = true
+        
+        if veh ~= 0 then
+            if state.radarWasEnabled and not state.radarEnabled then
+                state.radarEnabled = true
+                state.currentVehicle = veh
                 OpenRadarUI()
-                radarWasEnabled = false
+                state.radarWasEnabled = false
+                
+                if not radarThread then
+                    radarThread = CreateThread(RadarUpdateLoop)
+                end
             end
-
-            if radarEnabled and (now - lastUpdate >= Config.UpdateInterval) then
-                lastUpdate = now
-                DoRadarUpdate(ped, veh)
-            end
-
+            
+            Wait(500)
         else
-            if radarEnabled then
-                if Config.ReopenRadarAfterLeave then
-                    radarWasEnabled = true
+            if state.radarEnabled then
+                if reopenAfterLeave then
+                    state.radarWasEnabled = true
                 end
                 CloseRadarUI()
-                radarEnabled = false
+                state.radarEnabled = false
             end
-        end
-
-        if inputActive then
-            for _, ctrl in ipairs(typingDisableControls) do
-                DisableControlAction(0, ctrl, true)
-            end
-            -- Also disable scroll wheel when typing
-            for i = 0, 2 do
-                DisableControlAction(i, 14, true)
-                DisableControlAction(i, 15, true)
-                DisableControlAction(i, 81, true)
-                DisableControlAction(i, 82, true)
-            end
-        elseif interacting then
-            for _, ctrl in ipairs(interactDisableControls) do
-                DisableControlAction(0, ctrl, true)
-            end
-            -- Disable ALL scroll wheel controls when interacting with UI
-            for i = 0, 2 do  -- Input groups 0, 1, 2
-                DisableControlAction(i, 14, true)   -- Scroll wheel down
-                DisableControlAction(i, 15, true)   -- Scroll wheel up
-                DisableControlAction(i, 81, true)   -- Radio Wheel Down 
-                DisableControlAction(i, 82, true)   -- Radio Wheel Up
-                DisableControlAction(i, 99, true)   -- Vehicle Select Next Weapon
-                DisableControlAction(i, 100, true)  -- Vehicle Select Previous Weapon
-                DisableControlAction(i, 115, true)  -- Wheel Next
-                DisableControlAction(i, 116, true)  -- Wheel Previous
-                DisableControlAction(i, 261, true)  -- Wheel Down
-                DisableControlAction(i, 262, true)  -- Wheel Up
-            end
-        end
-
-        if radarEnabled or interacting then
-            Wait(0)
-        else
-            Wait(200)
+            
+            Wait(1000)
         end
     end
 end)
 
--- Export to add a BOLO plate
+-- Exports with validation
 exports('addBoloPlate', function(plate)
-    if not plate or type(plate) ~= "string" or plate == "" then
+    if type(plate) ~= "string" or plate == "" then
         return false
     end
     
-    local upperPlate = string.upper(plate)
-    
-    for _, existingPlate in ipairs(boloPlates) do
-        if existingPlate == upperPlate then
-            return false
-        end
+    local upperPlate = string_upper(plate)
+    if boloLookup[upperPlate] then
+        return false
     end
     
-    table.insert(boloPlates, upperPlate)
+    table_insert(boloPlates, upperPlate)
+    boloLookup[upperPlate] = true
     
-    if radarEnabled then
-        SendNUIMessage({ type = "updateBoloPlates", plates = boloPlates })
+    if state.radarEnabled then
+        SendNUIMessage({type = "updateBoloPlates", plates = boloPlates})
     end
     
     return true
 end)
 
--- Export to remove a BOLO plate
 exports('removeBoloPlate', function(plate)
-    if not plate or type(plate) ~= "string" or plate == "" then
+    if type(plate) ~= "string" or plate == "" then
         return false
     end
     
-    local removed = false
-    for i, existingPlate in ipairs(boloPlates) do
-        if existingPlate:upper() == plate:upper() then
-            table.remove(boloPlates, i)
-            removed = true
-            break
+    local upperPlate = string_upper(plate)
+    if not boloLookup[upperPlate] then
+        return false
+    end
+    
+    for i = 1, #boloPlates do
+        if boloPlates[i] == upperPlate then
+            table_remove(boloPlates, i)
+            boloLookup[upperPlate] = nil
+            
+            if state.radarEnabled then
+                SendNUIMessage({type = "updateBoloPlates", plates = boloPlates})
+            end
+            
+            return true
         end
     end
     
-    if removed and radarEnabled then
-        SendNUIMessage({ type = "updateBoloPlates", plates = boloPlates })
-    end
-    
-    return removed
+    return false
 end)
 
 exports('getBoloPlates', function()
@@ -412,7 +509,7 @@ exports('getBoloPlates', function()
 end)
 
 exports('isRadarEnabled', function()
-    return radarEnabled
+    return state.radarEnabled
 end)
 
 exports('toggleRadar', function()
