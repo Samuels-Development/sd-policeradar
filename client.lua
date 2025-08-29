@@ -328,21 +328,30 @@ CreateThread(function()
             for _, ctrl in ipairs(typingDisableControls) do
                 DisableControlAction(0, ctrl, true)
             end
+            -- Also disable scroll wheel when typing
+            for i = 0, 2 do
+                DisableControlAction(i, 14, true)
+                DisableControlAction(i, 15, true)
+                DisableControlAction(i, 81, true)
+                DisableControlAction(i, 82, true)
+            end
         elseif interacting then
             for _, ctrl in ipairs(interactDisableControls) do
                 DisableControlAction(0, ctrl, true)
             end
-        elseif radarEnabled then
-            DisableControlAction(0, 14, true)   -- Scroll wheel down
-            DisableControlAction(0, 15, true)   -- Scroll wheel up
-            DisableControlAction(0, 81, true)   -- Radio Wheel Down 
-            DisableControlAction(0, 82, true)   -- Radio Wheel Up
-            DisableControlAction(0, 99, true)   -- Vehicle Select Next Weapon
-            DisableControlAction(0, 100, true)  -- Vehicle Select Previous Weapon
-            DisableControlAction(0, 115, true)  -- Wheel Next
-            DisableControlAction(0, 116, true)  -- Wheel Previous
-            DisableControlAction(0, 261, true)  -- Wheel Down
-            DisableControlAction(0, 262, true)  -- Wheel Up
+            -- Disable ALL scroll wheel controls when interacting with UI
+            for i = 0, 2 do  -- Input groups 0, 1, 2
+                DisableControlAction(i, 14, true)   -- Scroll wheel down
+                DisableControlAction(i, 15, true)   -- Scroll wheel up
+                DisableControlAction(i, 81, true)   -- Radio Wheel Down 
+                DisableControlAction(i, 82, true)   -- Radio Wheel Up
+                DisableControlAction(i, 99, true)   -- Vehicle Select Next Weapon
+                DisableControlAction(i, 100, true)  -- Vehicle Select Previous Weapon
+                DisableControlAction(i, 115, true)  -- Wheel Next
+                DisableControlAction(i, 116, true)  -- Wheel Previous
+                DisableControlAction(i, 261, true)  -- Wheel Down
+                DisableControlAction(i, 262, true)  -- Wheel Up
+            end
         end
 
         if radarEnabled or interacting then
