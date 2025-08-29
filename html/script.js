@@ -267,7 +267,11 @@ function setupEventListeners() {
   logPanel.addEventListener("mousedown", handleLogMouseDown)
   boloPanel.addEventListener("mousedown", handleBoloMouseDown)
   document.addEventListener("mousemove", handleMouseMove)
-  document.addEventListener("mouseup", handleMouseUp)
+  document.addEventListener("mouseup", (e) => {
+    if (e.button === 0) {
+      handleMouseUp()
+    }
+  })
 
   setupResizeHandlers(radarPanel, "radar")
   setupResizeHandlers(logPanel, "log")
@@ -392,6 +396,7 @@ function checkBoloMatch(direction, plate) {
 }
 
 function handleRadarMouseDown(e) {
+  if (e.button !== 0) return
   if (e.target.classList.contains("resize-handle")) return
 
   if (!state.isPositioning) return
@@ -409,6 +414,7 @@ function handleRadarMouseDown(e) {
 }
 
 function handleLogMouseDown(e) {
+  if (e.button !== 0) return
   if (e.target.classList.contains("resize-handle")) return
 
   if (!state.isLogPositioning) return
@@ -426,6 +432,7 @@ function handleLogMouseDown(e) {
 }
 
 function handleBoloMouseDown(e) {
+  if (e.button !== 0) return
   if (e.target.classList.contains("resize-handle")) return
 
   if (!state.isBoloPositioning) return
@@ -1090,6 +1097,34 @@ function updateRadarData() {
 }
 
 document.addEventListener("DOMContentLoaded", init)
+
+document.addEventListener("contextmenu", (e) => {
+  e.preventDefault()
+  return false
+})
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    e.preventDefault()
+    e.stopPropagation()
+    return false
+  }
+  
+  if (e.key === "Backspace") {
+    const activeElement = document.activeElement
+    const isInput = activeElement && (
+      activeElement.tagName === "INPUT" || 
+      activeElement.tagName === "TEXTAREA" ||
+      activeElement.isContentEditable
+    )
+    
+    if (!isInput) {
+      e.preventDefault()
+      e.stopPropagation()
+      return false
+    }
+  }
+})
 
 window.addEventListener("message", (event) => {
   const data = event.data

@@ -324,11 +324,6 @@ CreateThread(function()
             end
         end
 
-        if radarEnabled and IsControlJustReleased(0, 202) then
-            radarEnabled = false
-            CloseRadarUI()
-        end
-
         if inputActive then
             for _, ctrl in ipairs(typingDisableControls) do
                 DisableControlAction(0, ctrl, true)
@@ -337,11 +332,6 @@ CreateThread(function()
             for _, ctrl in ipairs(interactDisableControls) do
                 DisableControlAction(0, ctrl, true)
             end
-        end
-        
-        if radarEnabled and not inputActive and IsControlJustReleased(0, 177) then -- 177 is BACKSPACE
-            radarEnabled = false
-            CloseRadarUI()
         end
 
         if radarEnabled or interacting then
