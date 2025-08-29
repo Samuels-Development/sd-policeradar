@@ -16,6 +16,7 @@ const state = {
   notificationType: "native",
   interactKey: "",
   selectedDirection: "Front",
+  speedUnit: "MPH",
 }
 
 const radarPanel = document.getElementById("radar-panel")
@@ -225,12 +226,41 @@ function setupEventListeners() {
   addBoloPlateBtn.addEventListener("click", showBoloModal)
   closeBoloBtnModal.addEventListener("click", hideBoloModal)
   addBoloBtn.addEventListener("click", addBoloPlate)
+  boloPlateInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      addBoloPlate()
+    }
+  })
+  
+  boloPlateInput.addEventListener("keydown", (e) => {
+    if (e.key === "Backspace" || e.key === "Escape") {
+      e.stopPropagation()
+      if (e.key === "Escape") {
+        e.preventDefault()
+        hideBoloModal()
+      }
+    }
+  })
 
   closeSpeedLockModalBtn.addEventListener("click", closeSpeedLockModal)
   setSpeedLockBtn.addEventListener("click", setSpeedLockThreshold)
   disableSpeedLockBtn.addEventListener("click", disableSpeedLock)
   speedLockInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") setSpeedLockThreshold()
+    if (e.key === "Enter") {
+      e.preventDefault()
+      setSpeedLockThreshold()
+    }
+  })
+  
+  speedLockInput.addEventListener("keydown", (e) => {
+    if (e.key === "Backspace" || e.key === "Escape") {
+      e.stopPropagation()
+      if (e.key === "Escape") {
+        e.preventDefault()
+        closeSpeedLockModal()
+      }
+    }
   })
 
   radarPanel.addEventListener("mousedown", handleRadarMouseDown)
@@ -368,7 +398,6 @@ function handleRadarMouseDown(e) {
   isDragging = true
   document.body.style.cursor = "move"
 
-  // Disable transitions during dragging for immediate response
   radarPanel.style.transition = "none"
 
   const rect = radarPanel.getBoundingClientRect()
@@ -695,14 +724,30 @@ function showBoloModal() {
   boloModal.classList.remove("hidden")
   boloPlateInput.value = ""
   boloPlateInput.focus()
+  
+  fetch("https://sd-policeradar/inputActive", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  }).catch(() => {})
 }
 
 function hideBoloModal() {
   boloModal.classList.add("hidden")
+  
+  fetch("https://sd-policeradar/inputInactive", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  }).catch(() => {})
 }
 
 function addBoloPlate() {
-  const plate = boloPlateInput.value.trim()
+  const plate = boloPlateInput.value.trim().toUpperCase()
   if (plate) {
     state.boloPlates.push(plate)
     fetch("https://sd-policeradar/addBoloPlate", {
@@ -723,10 +768,11 @@ function updateBoloEntries() {
     boloEntries.innerHTML = ""
     boloEmpty.classList.add("hidden")
     state.boloPlates.forEach((plate) => {
+      const displayPlate = plate.toUpperCase()
       const entryElement = document.createElement("div")
       entryElement.className = "bolo-entry"
       entryElement.innerHTML = `
-        <div class="bolo-plate">${plate}</div>
+        <div class="bolo-plate">${displayPlate}</div>
         <div class="log-entry-actions">
           <button class="icon-button delete-bolo" data-plate="${plate}" title="Remove BOLO">
             <i class="fa-solid fa-xmark"></i>
@@ -814,7 +860,7 @@ function updateLogEntries() {
                     <div class="log-entry-speed">
                         <span class="log-entry-direction">${reading.direction}:</span>
                         <span class="log-entry-value">${reading.speed}</span>
-                        <span class="log-entry-unit">mph</span>
+                        <span class="log-entry-unit">${state.speedUnit.toLowerCase()}</span>
                     </div>
                     <div class="log-entry-plate">${reading.plate}</div>
                     <div class="log-entry-time">${reading.timestamp}</div>
@@ -862,6 +908,18 @@ function showNotification(message) {
 
 function isValidKeybind(key) {
   return key && typeof key === "string" && key.trim() !== ""
+}
+
+function updateSpeedUnits() {
+  const speedUnitElements = document.querySelectorAll('.speed-unit')
+  speedUnitElements.forEach(element => {
+    element.textContent = state.speedUnit
+  })
+  
+  const speedLockInput = document.getElementById('speed-lock-input')
+  if (speedLockInput) {
+    speedLockInput.placeholder = `Enter speed (${state.speedUnit})`
+  }
 }
 
 function updateKeybindsDisplay(keybinds) {
@@ -933,10 +991,26 @@ function openSpeedLockModal() {
   speedLockInput.value = speedLockThreshold
   speedLockInput.focus()
   speedLockInput.select()
+  
+  fetch("https://sd-policeradar/inputActive", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  }).catch(() => {})
 }
 
 function closeSpeedLockModal() {
   speedLockModal.classList.add("hidden")
+  
+  fetch("https://sd-policeradar/inputInactive", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  }).catch(() => {})
 }
 
 function setSpeedLockThreshold() {
@@ -946,7 +1020,7 @@ function setSpeedLockThreshold() {
     speedLockEnabled = true
     speedLockUserDisabled = false
     closeSpeedLockModal()
-    showNotification(`Speed lock threshold set to ${speedLockThreshold} MPH`)
+    showNotification(`Speed lock threshold set to ${speedLockThreshold} ${state.speedUnit}`)
 
     if (window.invokeNative) {
       fetch("https://sd-policeradar/setSpeedLockThreshold", {
@@ -961,7 +1035,7 @@ function setSpeedLockThreshold() {
       }).catch(() => {})
     }
   } else {
-    showNotification("Please enter a valid speed between 1-200 MPH")
+    showNotification(`Please enter a valid speed between 1-200 ${state.speedUnit}`)
   }
 }
 
@@ -998,7 +1072,7 @@ function updateRadarData() {
         if (data.front.speed && Number.parseInt(data.front.speed) >= speedLockThreshold && speedLockEnabled) {
           toggleRadar()
           lastLockTrigger = data.front.plate || "Unknown Vehicle"
-          showNotification(`Auto-locked: ${lastLockTrigger} - Speed ${data.front.speed} MPH exceeds threshold`)
+          showNotification(`Auto-locked: ${lastLockTrigger} - Speed ${data.front.speed} ${state.speedUnit} exceeds threshold`)
         }
       }
       if (data.rear) {
@@ -1008,7 +1082,7 @@ function updateRadarData() {
         if (data.rear.speed && Number.parseInt(data.rear.speed) >= speedLockThreshold && speedLockEnabled) {
           toggleRadar()
           lastLockTrigger = data.rear.plate || "Unknown Vehicle"
-          showNotification(`Auto-locked: ${lastLockTrigger} - Speed ${data.rear.speed} MPH exceeds threshold`)
+          showNotification(`Auto-locked: ${lastLockTrigger} - Speed ${data.rear.speed} ${state.speedUnit} exceeds threshold`)
         }
       }
     })
@@ -1049,6 +1123,9 @@ window.addEventListener("message", (event) => {
     }
   } else if (data.type === "setNotificationType") {
     state.notificationType = data.notificationType || "native"
+  } else if (data.type === "setSpeedUnit") {
+    state.speedUnit = data.speedUnit || "MPH"
+    updateSpeedUnits()
   } else if (data.type === "loadPositions") {
     applyPositions(data.positions)
   } else if (data.type === "speedLockTriggered") {
@@ -1058,7 +1135,7 @@ window.addEventListener("message", (event) => {
 
       const plateInfo = data.plate && data.plate !== "--------" ? ` (${data.plate})` : ""
       showNotification(
-        `Auto-locked: ${data.direction} radar - ${data.speed} MPH${plateInfo} exceeds ${speedLockThreshold} MPH threshold`,
+        `Auto-locked: ${data.direction} radar - ${data.speed} ${state.speedUnit}${plateInfo} exceeds ${speedLockThreshold} ${state.speedUnit} threshold`,
       )
     }
   } else if (data.type === "openSpeedLockModal") {

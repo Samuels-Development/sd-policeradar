@@ -31,8 +31,11 @@ Config.Keybinds = { -- You can set these as nil if you don't want it to be somet
     SpeedLockThreshold = nil,        -- Open speed lock threshold menu
 }
 
--- Speed multiplier (2.23694 for MPH, 3.6 for KMH)
-Config.SpeedMultiplier = 2.23694
+-- Speed unit configuration
+Config.SpeedUnit = "MPH" -- "MPH" or "KMH"
+
+-- Speed multiplier (automatically set based on SpeedUnit)
+Config.SpeedMultiplier = Config.SpeedUnit == "MPH" and 2.23694 or 3.6
 
 -- Update interval in ms
 Config.UpdateInterval = 200

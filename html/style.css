@@ -56,19 +56,20 @@ body {
   -webkit-backface-visibility: hidden;
 }
 
+.resize-handle {
+  position: absolute;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, background 0.2s ease;
+  z-index: 10;
+}
+
 .positioning .resize-handle,
 .resizing .resize-handle {
   opacity: 1;
   pointer-events: auto;
-}
-
-.resize-handle {
-  position: absolute;
   background: var(--accent-primary);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-  z-index: 10;
 }
 
 .resize-handle:hover {
@@ -248,6 +249,7 @@ body {
 }
 
 @keyframes pulse {
+
   0%,
   100% {
     opacity: 1;
@@ -293,7 +295,7 @@ body {
 }
 
 .card-content {
-  padding: 20px 20px 12px 20px;
+  padding: 20px 20px 8px 20px;
 }
 
 .radar-panel {
@@ -302,7 +304,7 @@ body {
   width: 380px;
   min-width: 320px;
   max-width: 600px;
-  min-height: 280px;
+  min-height: 150px;
   max-height: 500px;
   left: 50%;
   top: 50%;
@@ -322,7 +324,7 @@ body {
 .speed-panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 5px;
   position: relative;
   transition: all 0.3s ease;
   border-radius: 10px;
@@ -380,7 +382,7 @@ body {
   align-items: baseline;
   justify-content: center;
   gap: 4px;
-  margin-bottom: 16px;
+  margin-bottom: 2px;
 }
 
 .speed-value {
@@ -466,7 +468,7 @@ body {
   max-width: 500px;
   min-height: 200px;
   max-height: 600px;
-  overflow: auto;
+  overflow: hidden;
   will-change: transform, left, top;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
@@ -476,6 +478,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .bolo-entry {
@@ -487,6 +492,8 @@ body {
   align-items: center;
   border: 1px solid var(--border-color);
   transition: all 0.2s ease;
+  word-break: break-all;
+  min-width: 0;
 }
 
 .bolo-entry:hover {
@@ -494,12 +501,16 @@ body {
   background: rgba(245, 158, 11, 0.05);
 }
 
-.bolo-entry-plate {
+.bolo-plate {
   font-family: "JetBrains Mono", monospace;
   font-size: 14px;
   font-weight: 600;
   color: var(--accent-warning);
   letter-spacing: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
 }
 
 .bolo-empty,
