@@ -332,6 +332,17 @@ CreateThread(function()
             for _, ctrl in ipairs(interactDisableControls) do
                 DisableControlAction(0, ctrl, true)
             end
+        elseif radarEnabled then
+            DisableControlAction(0, 14, true)   -- Scroll wheel down
+            DisableControlAction(0, 15, true)   -- Scroll wheel up
+            DisableControlAction(0, 81, true)   -- Radio Wheel Down 
+            DisableControlAction(0, 82, true)   -- Radio Wheel Up
+            DisableControlAction(0, 99, true)   -- Vehicle Select Next Weapon
+            DisableControlAction(0, 100, true)  -- Vehicle Select Previous Weapon
+            DisableControlAction(0, 115, true)  -- Wheel Next
+            DisableControlAction(0, 116, true)  -- Wheel Previous
+            DisableControlAction(0, 261, true)  -- Wheel Down
+            DisableControlAction(0, 262, true)  -- Wheel Up
         end
 
         if radarEnabled or interacting then

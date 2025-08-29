@@ -131,6 +131,11 @@ function handleMouseUp() {
     if (isBolosDragging || isBoloResizing) {
       boloPanel.style.transition = "transform 0.2s ease, box-shadow 0.2s ease"
       boloPanel.classList.remove("resizing")
+      if (boloEntries.scrollHeight > boloEntries.clientHeight) {
+        boloEntries.classList.add("has-scrollbar")
+      } else {
+        boloEntries.classList.remove("has-scrollbar")
+      }
     }
   }
 
@@ -792,9 +797,18 @@ function updateBoloEntries() {
         removeBoloPlate(plate)
       })
     })
+    
+    setTimeout(() => {
+      if (boloEntries.scrollHeight > boloEntries.clientHeight) {
+        boloEntries.classList.add("has-scrollbar")
+      } else {
+        boloEntries.classList.remove("has-scrollbar")
+      }
+    }, 0)
   } else {
     boloEntries.innerHTML = ""
     boloEmpty.classList.remove("hidden")
+    boloEntries.classList.remove("has-scrollbar")
   }
 }
 
