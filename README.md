@@ -203,8 +203,7 @@ end)
 #### Example 1: MDT Integration
 ```lua
 -- Send BOLO plates from MDT to radar
-RegisterNetEvent('mdt:sendBoloToRadar')
-AddEventHandler('mdt:sendBoloToRadar', function(plateList)
+RegisterNetEvent('mdt:sendBoloToRadar', function(plateList)
     for _, plate in ipairs(plateList) do
         exports['sd-policeradar']:addBoloPlate(plate)
     end
