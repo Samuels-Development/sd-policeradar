@@ -1,0 +1,45 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          cd web
+          npm install
+
+      - name: Build React app
+        run: |
+          cd web
+          npm run build
+
+      - name: Create release package
+        run: |
+          mkdir -p sd-policeradar/web
+          cp -r web/build sd-policeradar/web/
+          cp client.lua sd-policeradar/
+          cp config.lua sd-policeradar/
+          cp fxmanifest.lua sd-policeradar/
+          zip -r sd-policeradar-${{ github.ref_name }}.zip sd-policeradar
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: sd-policeradar-${{ github.ref_name }}.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
