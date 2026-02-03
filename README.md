@@ -1,11 +1,14 @@
 # sd-policeradar
 
-sd-policeradar is a feature-packed yet minimalist police radar that includes standard functionalities such as checking the speeds (in both MPH and KMH) and license plates of vehicles both ahead and behind you. You can also lock the radar, save entries to a radar log for later retrieval, create BOLOs that highlight a license plate with a red background if it matches, set an auto radar lock, and more. The system features a convenient keybind menu displaying all available keybinds, along with the ability to freely move UI elements, resize them and save their positions using KVP—ensuring your players’ layouts are retained across restarts and logouts.
+sd-policeradar is a feature-packed police radar that includes standard functionalities such as checking the speeds (in both MPH and KMH) and license plates of vehicles both ahead and behind you. You can also lock the radar, save entries to a radar log for later retrieval, create BOLOs that highlight a license plate with a red background if it matches, set an auto radar lock, and more. The system features a convenient keybind menu displaying all available keybinds, along with the ability to freely move UI elements, resize them and save their positions using KVP—ensuring your players’ layouts are retained across restarts and logouts.
 
 ## UI Preview
-![FiveM_GTAProcess_510TncDHRk](https://github.com/user-attachments/assets/7b6df891-44fe-4664-990e-d526b2e2bbe1)
-![FiveM_GTAProcess_vgUcWbWUkq](https://github.com/user-attachments/assets/665e37ec-cff5-4a3c-8368-9da60f25a41b)
-![FiveM_GTAProcess_zjxFS5S6aO](https://github.com/user-attachments/assets/88a2ff81-ef7d-4668-98cc-8d78a21e7932)
+![Discord_jbaYPnhgqu](https://github.com/user-attachments/assets/34304fef-51c3-4d03-acd8-09afe98cf6b4)
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/b59e11c3-cc39-4644-86ff-91932aec15bd" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/8bab8f32-94e3-41c9-9539-b5740831098c" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/942a75fb-3a14-49e7-b724-7bf7f9330667" />
+
+
 
 
 ## 🔔 Contact
