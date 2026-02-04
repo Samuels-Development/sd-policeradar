@@ -19,7 +19,7 @@ Store: [Click Here](https://fivem.samueldev.shop)
 
 ## 💾 Installation
 
-1. Download the latest release from the [GitHub repository](https://github.com/Samuels-Development/sd-policeradar/releases).
+1. Download the latest release from the [GitHub repository](https://github.com/Samuels-Development/sd-policeradar/releases). (ZIP, NOT SOURCE)
 2. Extract the downloaded file and rename the folder to `sd-policeradar`.
 3. Place the `sd-policeradar` folder into your server's `resources` directory.
 4. Add `ensure sd-policeradar` to your `server.cfg` to ensure the resource starts with your server.
