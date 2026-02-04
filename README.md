@@ -4,6 +4,7 @@ sd-policeradar is a feature-packed police radar that includes standard functiona
 
 ## UI Preview
 ![Discord_jbaYPnhgqu](https://github.com/user-attachments/assets/34304fef-51c3-4d03-acd8-09afe98cf6b4)
+<img width="1938" height="1091" alt="image" src="https://github.com/user-attachments/assets/7daf0cfd-c91a-4eb2-91cf-d1e20e19cf44" />
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/b59e11c3-cc39-4644-86ff-91932aec15bd" />
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/8bab8f32-94e3-41c9-9539-b5740831098c" />
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/942a75fb-3a14-49e7-b724-7bf7f9330667" />
