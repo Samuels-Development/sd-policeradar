@@ -3,11 +3,10 @@
 sd-policeradar is a feature-packed police radar that includes standard functionalities such as checking the speeds (in both MPH and KMH) and license plates of vehicles both ahead and behind you. You can also lock the radar, save entries to a radar log for later retrieval, create BOLOs that highlight a license plate with a red background if it matches, set an auto radar lock, and more. The system features a convenient keybind menu displaying all available keybinds, along with the ability to freely move UI elements, resize them and save their positions using KVP—ensuring your players’ layouts are retained across restarts and logouts.
 
 ## UI Preview
-![Discord_jbaYPnhgqu](https://github.com/user-attachments/assets/34304fef-51c3-4d03-acd8-09afe98cf6b4)
-<img width="1938" height="1091" alt="image" src="https://github.com/user-attachments/assets/7daf0cfd-c91a-4eb2-91cf-d1e20e19cf44" />
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/b59e11c3-cc39-4644-86ff-91932aec15bd" />
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/8bab8f32-94e3-41c9-9539-b5740831098c" />
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/942a75fb-3a14-49e7-b724-7bf7f9330667" />
+![Discord_D9rrh814UH](https://github.com/user-attachments/assets/4ee596d1-1652-474b-80fc-ba4e843d6ffd)
+![Discord_TcDSa96sZZ](https://github.com/user-attachments/assets/85d725c9-6b02-4f16-9550-bd5786df8dd3)
+![Discord_HEPeh4ZNe2](https://github.com/user-attachments/assets/b7c51020-ed60-4400-8e93-70dce7ddca93)
+<img width="1938" height="1091" alt="Discord_FhdnsFvBpY" src="https://github.com/user-attachments/assets/a9457b4a-7db3-4bb1-a3c5-0e40abe4614d" />
 
 
 
