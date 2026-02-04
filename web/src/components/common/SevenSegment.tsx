@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useRadarStore } from '@/store/useRadarStore'
 
 interface SevenSegmentProps {
   value: number
@@ -34,15 +35,17 @@ export const SevenSegment = memo(function SevenSegment({
   color = 'cyan',
   size = 'md'
 }: SevenSegmentProps) {
+  const ledGlow = useRadarStore((s) => s.ledGlow)
   const paddedValue = String(Math.min(Math.max(0, Math.floor(value)), Math.pow(10, digits) - 1)).padStart(digits, '0')
   const fullSegment = '8'.repeat(digits)
+  const noGlow = ledGlow ? '' : ' no-glow'
 
   return (
     <div className={`segment-display relative ${sizeClasses[size]} font-bold tracking-wider`}>
       <span className={`${dimmedColorClasses[color]} led-dimmed`}>
         {fullSegment}
       </span>
-      <span className={`absolute inset-0 ${colorClasses[color]}`}>
+      <span className={`absolute inset-0 ${colorClasses[color]}${noGlow}`}>
         {paddedValue}
       </span>
     </div>

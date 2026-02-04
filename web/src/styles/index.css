@@ -109,11 +109,11 @@ body {
 
 .speed-label-top {
   font-size: 9px;
-  font-weight: 700;
-  color: #666;
+  font-weight: 800;
+  color: #aaa;
   letter-spacing: 1px;
   text-transform: uppercase;
-  text-shadow: 0 1px 0 rgba(0,0,0,0.5);
+  text-shadow: none;
   padding: 2px 8px;
   background: linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
   border-radius: 2px;
@@ -124,9 +124,9 @@ body {
 }
 
 .speed-label-small {
-  font-size: 6px;
-  font-weight: 500;
-  color: #444;
+  font-size: 7px;
+  font-weight: 700;
+  color: #888;
   letter-spacing: 0.3px;
   margin-bottom: 2px;
   min-height: 8px;
@@ -137,9 +137,9 @@ body {
   bottom: 1px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 8px;
-  font-weight: 700;
-  color: #555;
+  font-size: 9px;
+  font-weight: 800;
+  color: #aaa;
   letter-spacing: 1.5px;
 }
 
@@ -200,6 +200,7 @@ body {
   border-color: #1a150a;
 }
 
+
 .segment-display {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
@@ -251,6 +252,10 @@ body {
 .led-dimmed {
   opacity: 0.06;
   text-shadow: none;
+}
+
+.no-glow {
+  text-shadow: none !important;
 }
 
 .mode-indicator-bar {
@@ -454,9 +459,9 @@ body {
 }
 
 .plate-image-label {
-  font-size: 8px;
-  font-weight: 700;
-  color: #555;
+  font-size: 9px;
+  font-weight: 800;
+  color: #aaa;
   letter-spacing: 1.5px;
   margin-top: 2px;
   text-transform: uppercase;
@@ -529,9 +534,9 @@ body {
 }
 
 .patrol-label {
-  font-size: 8px;
-  font-weight: 700;
-  color: #555;
+  font-size: 9px;
+  font-weight: 800;
+  color: #aaa;
   letter-spacing: 1px;
   text-align: center;
   white-space: nowrap;

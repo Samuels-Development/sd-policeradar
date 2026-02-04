@@ -51,7 +51,8 @@ export default function App() {
     toggleKeybinds,
     addSavedReading,
     setSpeedLockEnabled,
-    updateApproaching
+    updateApproaching,
+    setLedGlow
   } = useRadarStore()
 
   const showNotification = useCallback((message: string) => {
@@ -99,6 +100,10 @@ export default function App() {
 
   useNuiEvent<{ speedUnit: 'MPH' | 'KMH' }>('setSpeedUnit', (data) => {
     setSpeedUnit(data.speedUnit)
+  })
+
+  useNuiEvent<{ ledGlow: boolean }>('setLedGlow', (data) => {
+    setLedGlow(data.ledGlow)
   })
 
   useNuiEvent<{ positions: SavedPositions }>('loadPositions', (data) => {
@@ -272,7 +277,7 @@ export default function App() {
         <Notification key={notification.key} message={notification.message} onHide={() => setNotification(null)} />
       )}
 
-      <Radar />
+      <Radar onOpenSpeedLock={() => setSpeedLockModalOpen(true)} />
 
       <LogPanel />
       <BoloPanel onAddBolo={() => setBoloModalOpen(true)} />

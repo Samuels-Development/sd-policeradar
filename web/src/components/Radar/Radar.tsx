@@ -6,7 +6,11 @@ import { PlateImage } from './PlateImage'
 import { ModeIndicator } from './ModeIndicator'
 import { fetchNui } from '@/hooks/useNuiCallback'
 
-export function Radar() {
+interface RadarProps {
+  onOpenSpeedLock?: () => void
+}
+
+export function Radar({ onOpenSpeedLock }: RadarProps) {
   const [isPositioning, setIsPositioning] = useState(false)
 
   const {
@@ -33,7 +37,6 @@ export function Radar() {
     toggleFullLock,
     toggleSpeedLock,
     togglePlateLock,
-    clearLocked,
     toggleLog,
     toggleBolo,
     toggleKeybinds,
@@ -41,6 +44,7 @@ export function Radar() {
     showLog,
     showBolo,
     showKeybinds,
+    speedLockEnabled,
     positions
   } = useRadarStore()
 
@@ -225,6 +229,15 @@ export function Radar() {
                 </svg>
               </button>
               <button
+                className={`radar-btn ${speedLockEnabled ? 'active' : ''}`}
+                onClick={onOpenSpeedLock}
+                title="Speed Lock Threshold"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+              </button>
+              <button
                 className="radar-btn"
                 onClick={handleSaveReading}
                 title="Save Reading"
@@ -232,15 +245,6 @@ export function Radar() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
                   <path d="M17 21v-8H7v8M7 3v5h8"/>
-                </svg>
-              </button>
-              <button
-                className="radar-btn"
-                onClick={clearLocked}
-                title="Clear Locked"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
                 </svg>
               </button>
 

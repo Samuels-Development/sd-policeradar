@@ -66,26 +66,39 @@ export function BoloModal({ isOpen, onClose }: BoloModalProps) {
         </div>
 
         <div className="p-4 flex flex-col gap-4">
-          <input
-            ref={inputRef}
-            type="text"
-            value={value}
-            onChange={e => setValue(e.target.value.toUpperCase())}
-            onKeyDown={handleKeyDown}
-            placeholder="Enter plate number"
-            maxLength={8}
-            className="w-full px-4 py-3 bg-zinc-900 border border-zinc-600 rounded text-zinc-100 font-mono text-center text-lg tracking-widest uppercase focus:outline-none focus:border-amber-500"
-          />
+          <div className="flex items-stretch gap-0 rounded overflow-hidden border border-zinc-600 focus-within:border-amber-500 transition-colors">
+            <input
+              ref={inputRef}
+              type="text"
+              value={value}
+              onChange={e => setValue(e.target.value.toUpperCase())}
+              onKeyDown={handleKeyDown}
+              placeholder="PLATE #"
+              maxLength={8}
+              className="flex-1 px-4 py-3 bg-zinc-900 text-zinc-100 font-mono text-center text-lg tracking-widest uppercase focus:outline-none border-none"
+            />
+          </div>
 
-          <button
-            onClick={handleAdd}
-            className="w-full px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded font-medium text-sm flex items-center justify-center gap-2 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Add BOLO
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleClose}
+              className="flex-1 px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white rounded font-medium text-sm flex items-center justify-center gap-2 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Cancel
+            </button>
+            <button
+              onClick={handleAdd}
+              className="flex-1 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded font-medium text-sm flex items-center justify-center gap-2 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Add BOLO
+            </button>
+          </div>
         </div>
       </div>
     </div>

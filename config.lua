@@ -28,6 +28,9 @@ return {
         SpeedLockThreshold = nil,        -- Open speed lock threshold menu
     },
 
+    -- LED glow effect on speed numbers (true = glow on, false = glow off)
+    LedGlow = false,
+
     -- Speed unit configuration
     SpeedUnit = "MPH", -- "MPH" or "KMH"
 

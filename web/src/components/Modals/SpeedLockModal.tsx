@@ -9,6 +9,7 @@ interface SpeedLockModalProps {
 
 export function SpeedLockModal({ isOpen, onClose }: SpeedLockModalProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const holdRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const { speedLockThreshold, speedUnit, setSpeedLockThreshold, setSpeedLockEnabled } = useRadarStore()
   const [value, setValue] = useState(String(speedLockThreshold))
 
@@ -55,6 +56,51 @@ export function SpeedLockModal({ isOpen, onClose }: SpeedLockModalProps) {
     }
   }, [handleSet, handleClose])
 
+  const increment = useCallback(() => {
+    setValue(prev => {
+      const n = Math.max(1, Math.min(200, (parseInt(prev) || 0) + 5))
+      return String(n)
+    })
+  }, [])
+
+  const decrement = useCallback(() => {
+    setValue(prev => {
+      const n = Math.max(1, Math.min(200, (parseInt(prev) || 0) - 5))
+      return String(n)
+    })
+  }, [])
+
+  const startHold = useCallback((fn: () => void) => {
+    fn()
+    const id = setInterval(fn, 120)
+    holdRef.current = id
+  }, [])
+
+  const stopHold = useCallback(() => {
+    if (holdRef.current) {
+      clearInterval(holdRef.current)
+      holdRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    return stopHold
+  }, [stopHold])
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '')
+    if (raw === '') {
+      setValue('')
+    } else {
+      const n = parseInt(raw)
+      if (n > 200) {
+        setValue('200')
+      } else {
+        setValue(raw)
+      }
+    }
+  }, [])
+
   if (!isOpen) return null
 
   return (
@@ -75,17 +121,46 @@ export function SpeedLockModal({ isOpen, onClose }: SpeedLockModalProps) {
         </div>
 
         <div className="p-4 flex flex-col gap-4">
-          <input
-            ref={inputRef}
-            type="number"
-            value={value}
-            onChange={e => setValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={`Enter speed (${speedUnit})`}
-            min={1}
-            max={200}
-            className="w-full px-4 py-3 bg-zinc-900 border border-zinc-600 rounded text-zinc-100 font-mono text-center text-lg tracking-wider focus:outline-none focus:border-blue-500"
-          />
+          <div className="flex items-stretch gap-0 rounded overflow-hidden border border-zinc-600 focus-within:border-blue-500 transition-colors">
+            <input
+              ref={inputRef}
+              type="text"
+              inputMode="numeric"
+              value={value}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="0"
+              className="flex-1 px-4 py-3 bg-zinc-900 text-zinc-100 font-mono text-center text-lg tracking-wider focus:outline-none border-none"
+            />
+            <div className="flex flex-col w-10 border-l border-zinc-600">
+              <button
+                type="button"
+                onMouseDown={() => startHold(increment)}
+                onMouseUp={stopHold}
+                onMouseLeave={stopHold}
+                className="flex-1 flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer border-b border-zinc-600"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onMouseDown={() => startHold(decrement)}
+                onMouseUp={stopHold}
+                onMouseLeave={stopHold}
+                className="flex-1 flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div className="text-center text-xs text-zinc-500 -mt-2 tracking-wide">
+            1 &ndash; 200 {speedUnit} &middot; step &plusmn;5
+          </div>
 
           <div className="flex gap-2">
             <button

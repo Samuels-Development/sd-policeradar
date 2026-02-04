@@ -24,8 +24,11 @@ interface RadarActions {
   toggleKeybinds: () => void
   setSpeedLockThreshold: (threshold: number) => void
   setSpeedLockEnabled: (enabled: boolean) => void
+  setLedGlow: (ledGlow: boolean) => void
   setPositions: (positions: SavedPositions) => void
   clearLocked: () => void
+  clearLockedFront: () => void
+  clearLockedRear: () => void
   toggleFrontMode: () => void
   toggleRearMode: () => void
   toggleFrontXmit: () => void
@@ -67,6 +70,7 @@ const initialState: RadarState = {
   showKeybinds: false,
   speedLockThreshold: 80,
   speedLockEnabled: false,
+  ledGlow: true,
   positions: {},
 }
 
@@ -214,6 +218,8 @@ export const useRadarStore = create<RadarState & RadarActions>((set, get) => ({
 
   setSpeedLockEnabled: (enabled) => set({ speedLockEnabled: enabled }),
 
+  setLedGlow: (ledGlow) => set({ ledGlow }),
+
   setPositions: (positions) => set({ positions }),
 
   clearLocked: () => set({
@@ -224,6 +230,18 @@ export const useRadarStore = create<RadarState & RadarActions>((set, get) => ({
     lockedFrontPlate: '',
     lockedRearPlate: '',
     lockedFrontPlateIndex: 0,
+    lockedRearPlateIndex: 0
+  }),
+
+  clearLockedFront: () => set({
+    lockedFrontSpeed: 0,
+    lockedFrontPlate: '',
+    lockedFrontPlateIndex: 0
+  }),
+
+  clearLockedRear: () => set({
+    lockedRearSpeed: 0,
+    lockedRearPlate: '',
     lockedRearPlateIndex: 0
   }),
 

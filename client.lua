@@ -511,7 +511,8 @@ local function OpenRadarUI()
         {type = "open"},
         {type = "setKeybinds", keybinds = Config.Keybinds},
         {type = "setNotificationType", notificationType = notificationType},
-        {type = "setSpeedUnit", speedUnit = Config.SpeedUnit}
+        {type = "setSpeedUnit", speedUnit = Config.SpeedUnit},
+        {type = "setLedGlow", ledGlow = Config.LedGlow ~= false}
     }
 
     local saved = LoadSavedPositions()

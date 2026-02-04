@@ -78,6 +78,7 @@ export interface RadarState {
   showKeybinds: boolean
   speedLockThreshold: number
   speedLockEnabled: boolean
+  ledGlow: boolean
   positions: SavedPositions
 }
 
