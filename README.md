@@ -33,11 +33,27 @@ Store: [Click Here](https://fivem.samueldev.shop)
 
 ## 📖 Usage
 
-### Command
-You can use `/radar` to open the UI and `/radarInteract` to actually click on elements of the UI.
+### Commands & Keybinds
 
-### Keybinds
-As mentioned above, you can also open and use elements of the radar system via keybinds, refer to Config.Keybinds in the `config.lua` file
+All keybinds are configurable in `config.lua`. Players can also rebind them in-game via FiveM's keybind settings. Set a keybind to `nil` to leave it unbound (command-only).
+
+| Command | Default Keybind | Description |
+|---------|:-:|-------------|
+| `/radar` | `F6` | Toggle the radar on/off |
+| `/radarInteract` | `F7` | Enter interact mode to click UI elements |
+| `/radarSave` | `J` | Save the current reading to the radar log |
+| `/radarLock` | `F9` | Lock/unlock all (speed + plates) |
+| `/radarLockSpeed` | `N` | Lock/unlock speed only |
+| `/radarLockPlate` | `M` | Lock/unlock plates only |
+| `/radarToggleLog` | `F10` | Toggle the radar log panel |
+| `/radarToggleBolo` | `F11` | Toggle the BOLO list panel |
+| `/radarToggleKeybinds` | `F12` | Toggle the keybinds display |
+| `/radarSpeedLockThreshold` | — | Open the speed lock threshold menu |
+| `/radarMoveRadar` | — | Toggle move/resize mode for the radar |
+| `/radarMoveLog` | — | Toggle move/resize mode for the log panel |
+| `/radarMoveBolo` | — | Toggle move/resize mode for the BOLO panel |
+
+> **Note:** The move commands (`/radarMoveRadar`, `/radarMoveLog`, `/radarMoveBolo`) automatically enable interact mode so your cursor appears. Press `F7` to exit interact mode when you're done repositioning.
 
 ## 🔧 Exports
 
