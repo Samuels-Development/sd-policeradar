@@ -3,14 +3,12 @@
 sd-policeradar is a feature-packed police radar that includes standard functionalities such as checking the speeds (in both MPH and KMH) and license plates of vehicles both ahead and behind you. You can also lock the radar, save entries to a radar log for later retrieval, create BOLOs that highlight a license plate with a red background if it matches, set an auto radar threshold lock, and more. The system features a convenient keybind menu displaying all available keybinds, along with the ability to freely move UI elements, resize them and save their positions using KVP—ensuring your players’ layouts are retained across restarts and logouts. You can toggle the LED Glow effect on the speed readings in the config!
 
 ## UI Preview
-Images 2 and 5 have the Led Glow disabled (in the config), just to display the visual difference between the two
-![Discord_D9rrh814UH](https://github.com/user-attachments/assets/4ee596d1-1652-474b-80fc-ba4e843d6ffd)
-![Discord_TcDSa96sZZ](https://github.com/user-attachments/assets/85d725c9-6b02-4f16-9550-bd5786df8dd3)
-![Discord_HEPeh4ZNe2](https://github.com/user-attachments/assets/b7c51020-ed60-4400-8e93-70dce7ddca93)
-<img width="1938" height="1091" alt="Discord_FhdnsFvBpY" src="https://github.com/user-attachments/assets/a9457b4a-7db3-4bb1-a3c5-0e40abe4614d" />
-<img width="1938" height="1091" alt="image" src="https://github.com/user-attachments/assets/d0bd795b-63f2-4f8a-8e09-ec82ce449633" />
-
-
+![Discord_WFYX07wbKV](https://github.com/user-attachments/assets/c7744bbe-a357-4414-904d-85fceb53bb8f)
+![Discord_VPcGBWSmih](https://github.com/user-attachments/assets/5af65a7b-1f62-4273-a9b7-aa54882fa5bc)
+![Discord_i1WASWTe8b](https://github.com/user-attachments/assets/4d4c7776-e2ec-419e-9c91-8e17ae308515)
+![Discord_9tX2w3o5Pz](https://github.com/user-attachments/assets/60de6aea-a33b-4777-a5e4-41500b82603a)
+This final image here shows the UI with the LED glow enabled in the config!
+![Discord_acIfXtLv92](https://github.com/user-attachments/assets/e0786efa-b144-44fd-88d0-8c7ddca09025)
 
 
 
