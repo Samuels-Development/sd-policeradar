@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useRadarStore } from '@/store/useRadarStore'
 
 interface ModeIndicatorProps {
   label: string
@@ -8,20 +9,24 @@ interface ModeIndicatorProps {
 
 const colorClasses = {
   green: {
-    active: 'text-green-400 text-shadow-green',
-    inactive: 'text-green-950'
+    active: 'text-green-400',
+    inactive: 'text-green-950',
+    glow: 'text-shadow-green',
   },
   red: {
-    active: 'text-red-400 text-shadow-red',
-    inactive: 'text-red-950'
+    active: 'text-red-400',
+    inactive: 'text-red-950',
+    glow: 'text-shadow-red',
   },
   amber: {
-    active: 'text-amber-400 text-shadow-amber',
-    inactive: 'text-amber-950'
+    active: 'text-amber-400',
+    inactive: 'text-amber-950',
+    glow: 'text-shadow-amber',
   },
   cyan: {
-    active: 'text-cyan-400 text-shadow-cyan',
-    inactive: 'text-cyan-950'
+    active: 'text-cyan-400',
+    inactive: 'text-cyan-950',
+    glow: 'text-shadow-cyan',
   }
 }
 
@@ -30,11 +35,13 @@ export const ModeIndicator = memo(function ModeIndicator({
   isActive,
   color = 'green'
 }: ModeIndicatorProps) {
+  const ledGlow = useRadarStore((s) => s.ledGlow)
   const classes = colorClasses[color]
+  const glowClass = ledGlow ? classes.glow : 'no-glow'
 
   return (
     <span
-      className={`mode-indicator ${isActive ? classes.active : classes.inactive} ${isActive ? 'mode-active' : 'mode-inactive'}`}
+      className={`mode-indicator ${isActive ? classes.active : classes.inactive} ${isActive ? `mode-active ${glowClass}` : 'mode-inactive'}`}
     >
       {label}
     </span>
