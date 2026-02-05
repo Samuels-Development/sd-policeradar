@@ -22,6 +22,9 @@ interface RadarActions {
   toggleLog: () => void
   toggleBolo: () => void
   toggleKeybinds: () => void
+  togglePositioningRadar: () => void
+  togglePositioningLog: () => void
+  togglePositioningBolo: () => void
   setSpeedLockThreshold: (threshold: number) => void
   setSpeedLockEnabled: (enabled: boolean) => void
   setLedGlow: (ledGlow: boolean) => void
@@ -68,6 +71,9 @@ const initialState: RadarState = {
   showLog: false,
   showBolo: false,
   showKeybinds: false,
+  positioningRadar: false,
+  positioningLog: false,
+  positioningBolo: false,
   speedLockThreshold: 80,
   speedLockEnabled: false,
   ledGlow: true,
@@ -213,6 +219,12 @@ export const useRadarStore = create<RadarState & RadarActions>((set, get) => ({
   toggleBolo: () => set((state) => ({ showBolo: !state.showBolo })),
 
   toggleKeybinds: () => set((state) => ({ showKeybinds: !state.showKeybinds })),
+
+  togglePositioningRadar: () => set((state) => ({ positioningRadar: !state.positioningRadar })),
+
+  togglePositioningLog: () => set((state) => ({ positioningLog: !state.positioningLog })),
+
+  togglePositioningBolo: () => set((state) => ({ positioningBolo: !state.positioningBolo })),
 
   setSpeedLockThreshold: (threshold) => set({ speedLockThreshold: threshold }),
 

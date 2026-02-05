@@ -739,6 +739,38 @@ for cmd, info in pairs(simpleCommands) do
     end
 end
 
+--- Move mode commands: toggle positioning for individual elements
+--- These auto-enable interact mode so the mouse works for dragging
+local moveCommands = {
+    radarMoveRadar = {Config.Keybinds.MoveRadar, "Move Radar Panel", "togglePositionRadar"},
+    radarMoveLog = {Config.Keybinds.MoveLog, "Move Log Panel", "togglePositionLog"},
+    radarMoveBolo = {Config.Keybinds.MoveBolo, "Move BOLO Panel", "togglePositionBolo"},
+}
+
+for cmd, info in pairs(moveCommands) do
+    RegisterCommand(cmd, function()
+        if state.radarEnabled then
+            if not state.interacting then
+                state.interacting = true
+                SetNuiFocus(true, true)
+                SetNuiFocusKeepInput(true)
+
+                if not controlThread then
+                    controlThread = CreateThread(ControlDisableLoop)
+                end
+            end
+
+            SendNUIMessage({type = info[3]})
+        end
+    end, false)
+    if info[1] and info[1]:match("%S") then
+        RegisterKeyMapping(cmd, info[2], "keyboard", info[1])
+        local hash = GetHashKey("+" .. cmd)
+        table_insert(controlGroups.interact, hash)
+        table_insert(controlGroups.typing, hash)
+    end
+end
+
 --- NUI callback: Set speed lock threshold and enable/disable auto-lock
 RegisterNUICallback("setSpeedLockThreshold", function(data, cb)
     state.speedLockThreshold = data.threshold or state.speedLockThreshold

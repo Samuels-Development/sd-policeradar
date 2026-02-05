@@ -49,6 +49,9 @@ export default function App() {
     toggleLog,
     toggleBolo,
     toggleKeybinds,
+    togglePositioningRadar,
+    togglePositioningLog,
+    togglePositioningBolo,
     addSavedReading,
     setSpeedLockEnabled,
     updateApproaching,
@@ -170,6 +173,18 @@ export default function App() {
 
   useNuiEvent<NuiMessage>('openSpeedLockModal', () => {
     setSpeedLockModalOpen(true)
+  })
+
+  useNuiEvent<NuiMessage>('togglePositionRadar', () => {
+    togglePositioningRadar()
+  })
+
+  useNuiEvent<NuiMessage>('togglePositionLog', () => {
+    togglePositioningLog()
+  })
+
+  useNuiEvent<NuiMessage>('togglePositionBolo', () => {
+    togglePositioningBolo()
   })
 
   useNuiEvent<SpeedLockTriggeredMessage>('speedLockTriggered', (data) => {

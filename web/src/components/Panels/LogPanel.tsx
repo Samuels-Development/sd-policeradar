@@ -1,12 +1,12 @@
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
 import { useRadarStore } from '@/store/useRadarStore'
 import { DraggablePanel } from '@/components/common/DraggablePanel'
 import { fetchNui } from '@/hooks/useNuiCallback'
 
 export function LogPanel() {
-  const [isPositioning, setIsPositioning] = useState(false)
-
   const {
+    positioningLog: isPositioning,
+    togglePositioningLog,
     showLog,
     savedReadings,
     speedUnit,
@@ -48,7 +48,7 @@ export function LogPanel() {
           <div className="flex items-center gap-1">
             <button
               className={`control-btn ${isPositioning ? 'active' : ''}`}
-              onClick={() => setIsPositioning(prev => !prev)}
+              onClick={() => togglePositioningLog()}
               title="Position"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

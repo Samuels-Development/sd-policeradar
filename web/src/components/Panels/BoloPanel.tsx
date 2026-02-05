@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
 import { useRadarStore } from '@/store/useRadarStore'
 import { DraggablePanel } from '@/components/common/DraggablePanel'
 import { fetchNui } from '@/hooks/useNuiCallback'
@@ -8,9 +8,9 @@ interface BoloPanelProps {
 }
 
 export function BoloPanel({ onAddBolo }: BoloPanelProps) {
-  const [isPositioning, setIsPositioning] = useState(false)
-
   const {
+    positioningBolo: isPositioning,
+    togglePositioningBolo,
     showBolo,
     boloPlates,
     toggleBolo,
@@ -51,7 +51,7 @@ export function BoloPanel({ onAddBolo }: BoloPanelProps) {
           <div className="flex items-center gap-1">
             <button
               className={`control-btn ${isPositioning ? 'active' : ''}`}
-              onClick={() => setIsPositioning(prev => !prev)}
+              onClick={() => togglePositioningBolo()}
               title="Position"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

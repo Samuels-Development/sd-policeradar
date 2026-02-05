@@ -30,6 +30,9 @@ export function KeybindsPanel() {
     { label: 'Toggle BOLO List', key: keybinds.ToggleBolo },
     { label: 'Show/Hide Keybinds', key: keybinds.ToggleKeybinds },
     { label: 'Speed Lock Threshold', key: keybinds.SpeedLockThreshold },
+    { label: 'Move Radar', key: keybinds.MoveRadar },
+    { label: 'Move Log', key: keybinds.MoveLog },
+    { label: 'Move BOLO', key: keybinds.MoveBolo },
   ].filter(item => isValidKeybind(item.key))
 
   return (

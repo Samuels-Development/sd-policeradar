@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useRadarStore } from '@/store/useRadarStore'
 import { SevenSegment } from '@/components/common/SevenSegment'
 import { DraggablePanel } from '@/components/common/DraggablePanel'
@@ -11,9 +11,9 @@ interface RadarProps {
 }
 
 export function Radar({ onOpenSpeedLock }: RadarProps) {
-  const [isPositioning, setIsPositioning] = useState(false)
-
   const {
+    positioningRadar: isPositioning,
+    togglePositioningRadar,
     isSpeedLocked,
     isPlateLocked,
     frontSpeed,
@@ -79,8 +79,8 @@ export function Radar({ onOpenSpeedLock }: RadarProps) {
   }, [frontSpeed, rearSpeed, lockedFrontSpeed, lockedRearSpeed, frontPlate, rearPlate, lockedFrontPlate, lockedRearPlate, addSavedReading])
 
   const handleTogglePositioning = useCallback(() => {
-    setIsPositioning(prev => !prev)
-  }, [])
+    togglePositioningRadar()
+  }, [togglePositioningRadar])
 
   const handlePositionChange = useCallback((position: { left: string; top: string; width: string; height: string }) => {
     fetchNui('savePositions', { radar: position })

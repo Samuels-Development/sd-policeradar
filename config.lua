@@ -26,6 +26,9 @@ return {
         ToggleBolo = "F11",               -- Toggle BOLO list
         ToggleKeybinds = "F12",           -- Toggle keybinds display
         SpeedLockThreshold = nil,        -- Open speed lock threshold menu
+        MoveRadar = nil,                    -- Toggle radar move mode
+        MoveLog = nil,                      -- Toggle log move mode
+        MoveBolo = nil,                     -- Toggle BOLO move mode
     },
 
     -- LED glow effect on speed numbers (true = glow on, false = glow off)

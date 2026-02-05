@@ -13,6 +13,9 @@ export interface Keybinds {
   ToggleBolo?: string
   ToggleKeybinds?: string
   SpeedLockThreshold?: string
+  MoveRadar?: string
+  MoveLog?: string
+  MoveBolo?: string
 }
 
 export interface PanelPosition {
@@ -76,6 +79,9 @@ export interface RadarState {
   showLog: boolean
   showBolo: boolean
   showKeybinds: boolean
+  positioningRadar: boolean
+  positioningLog: boolean
+  positioningBolo: boolean
   speedLockThreshold: number
   speedLockEnabled: boolean
   ledGlow: boolean
