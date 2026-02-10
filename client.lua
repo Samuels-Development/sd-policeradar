@@ -861,7 +861,7 @@ CreateThread(function()
         local veh = GetVehiclePedIsIn(ped, false)
 
         if veh ~= 0 then
-            if state.radarWasEnabled and not state.radarEnabled then
+            if state.radarWasEnabled and not state.radarEnabled and IsValidRadarVehicle(ped, veh) then
                 state.radarEnabled = true
                 state.currentVehicle = veh
                 OpenRadarUI()
